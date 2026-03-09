@@ -1,0 +1,139 @@
+# ============================
+# Python
+# ============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================
+# Virtual Environments
+# ============================
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+conda-env/
+
+# ============================
+# Jupyter Notebooks
+# ============================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+.jupyter/
+
+# ============================
+# IDE / Editors
+# ============================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================
+# OS Files
+# ============================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# ============================
+# Data Files (optional - uncomment if needed)
+# ============================
+# *.csv
+# *.xlsx
+# *.xls
+# *.parquet
+# *.pickle
+# *.pkl
+# data/
+# raw_data/
+
+# ============================
+# Output Files
+# ============================
+outputs/
+results/
+figures/
+*.log
+*.tmp
+
+# ============================
+# Secrets & Config
+# ============================
+.env
+.env.local
+*.env
+config.ini
+secrets.yaml
+credentials.json
+
+# ============================
+# LaTeX (if you compile the paper)
+# ============================
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.out
+*.nav
+*.snm
+*.vrb
+
+# ============================
+# Misc
+# ============================
+*.bak
+*.swp
+*.swo
+.cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/

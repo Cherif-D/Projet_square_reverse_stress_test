@@ -1,0 +1,9 @@
+sector,param_origin,calibration_status,note,delta_g,eta_g,b_shock_gdp,b_shock_vix,b_shock_sp500,b_shock_wti,b_shock_t10Y2Y,b_shock_unrate,b_shock_epu,c_shock_gdp,c_shock_vix,c_shock_sp500,c_shock_wti,c_shock_t10Y2Y,c_shock_unrate,c_shock_epu
+Energy,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.65,0.1,-0.18,0.16,-0.05,-0.1,-0.03,0.12,0.14,-0.02,0.02,-0.01,-0.01,0.0,0.02,0.02
+Transport,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.65,0.1,-0.32,0.26,-0.08,0.18,-0.03,0.28,0.14,-0.05,0.03,-0.01,0.03,0.0,0.03,0.02
+Manufacturing,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.65,0.1,-0.32,0.16,-0.05,0.05,-0.03,0.16,0.14,-0.05,0.02,-0.01,0.01,0.0,0.02,0.02
+Consumer,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.4,0.08,-0.32,0.26,-0.12,0.02,-0.05,0.28,0.1,-0.05,0.03,-0.01,0.0,0.0,0.03,0.01
+Tech,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.25,0.05,-0.18,0.26,-0.12,0.02,-0.03,0.16,0.08,-0.02,0.03,-0.01,0.0,0.0,0.02,0.01
+Utilities,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.18,0.04,-0.12,0.1,-0.05,0.02,-0.05,0.08,0.08,-0.02,0.02,-0.01,0.0,0.0,0.02,0.01
+Defense,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.28,0.05,-0.16,0.12,-0.05,0.02,-0.03,0.12,0.14,-0.02,0.02,-0.01,0.0,0.0,0.02,0.02
+RealEstate,stylized,not_empirically_estimated,"sector hierarchy economically grounded, numeric values stylized",0.4,0.08,-0.32,0.26,-0.08,0.02,-0.14,0.28,0.1,-0.05,0.03,-0.01,0.0,0.01,0.03,0.01

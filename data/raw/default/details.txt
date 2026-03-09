@@ -1,0 +1,35 @@
+Data description
+The following datasets track credit risk conditions at a quarterly frequency.
+
+FRED (U.S. commercial banks) — credit quality indicators
+Two quarterly time series from the FRED database summarise the credit quality of the aggregate loan portfolio of U.S. commercial banks.
+
+- DRALACBN (Delinquency Rate) measures the share of loans that are past due. It is an “early” indicator of credit deterioration, as it typically increases before realized losses.
+- CORALACBN (Charge-Off Rate) measures the share of loans that are written off as losses (charge-offs). It is a “late” indicator, reflecting losses that have already materialized, often with a lag relative to delinquency.
+
+Taken together, these series provide a concise view of the U.S. credit cycle, from rising payment distress to realized credit losses in the banking sector.
+
+
+DRALACBN
+  - Name       : Delinquency Rate on All Loans, All Commercial Banks
+  - Source     : FRED
+  - Frequency  : Quarterly
+  - Geography  : United States (US)
+
+CORALACBN
+  - Name       : Charge-Off Rate on All Loans, All Commercial Banks
+  - Source     : FRED
+  - Frequency  : Quarterly
+  - Geography  : United States (US)
+
+
+default_EBA.csv
+  - Description : Aggregated quarterly default rates published by the European Banking Authority (EBA) for banks using the Internal Ratings-Based (IRB) approach.
+                  The data are reported at the country level (no bank-level disclosure). For each country and quarter, the dataset provides the average default
+                  rate across participating institutions together with the corresponding number of observations.
+  - Source      : European Banking Authority (EBA) — Risk Dashboard (Risk monitoring)
+  - Frequency   : Quarterly
+  - Coverage    : Country-level (multiple countries)
+  - Time span   : 2015Q3–2024Q3
+  - Notes       : In our application, we use the United States subset extracted from the EBA dataset; the same procedure applies to other countries where
+                  comparable information is available.
