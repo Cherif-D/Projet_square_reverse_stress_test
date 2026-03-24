@@ -35,15 +35,15 @@ Dans un **Reverse Stress Test**, on inverse la logique :
 
 ### Le scénario géopolitique
 
-Le choc principal est un choc géopolitique $g$ (mesuré par l'indice **GPRD** — Geopolitical Risk Daily), accompagné de chocs macro $x$ (PIB, VIX, chômage...). Ensemble, ils forment le vecteur de scénario :
+Le choc principal est un choc géopolitique `g` (mesuré par l'indice **GPRD** — Geopolitical Risk Daily), accompagné de chocs macro `x` (PIB, VIX, chômage...). Ensemble, ils forment le vecteur de scénario :
 
 $$s = (g,\, x_1,\, x_2,\, \ldots,\, x_7) \in \mathbb{R}^8 \quad \text{(z-scores)}$$
 
-### Le design point $s^*$
+### Le design point `s*`
 
-Le **design point** $s^*$ est la solution du RST : le scénario de rupture le plus plausible. Il est à la fois :
-- Sur la **frontière de rupture** : $R(s^*) = \bar{R}$ (ratio CET1/RWA exactement au seuil)
-- Le **plus proche de la baseline** $s = 0$ au sens de Mahalanobis (le moins extrême statistiquement)
+Le **design point** `s*` est la solution du RST : le scénario de rupture le plus plausible. Il est à la fois :
+- Sur la **frontière de rupture** : `R(s*) = R_bar` (ratio CET1/RWA exactement au seuil)
+- Le **plus proche de la baseline** `s = 0` au sens de Mahalanobis (le moins extrême statistiquement)
 
 ---
 
@@ -160,24 +160,24 @@ Généré par `simulate_exposures.py` — 500 emprunteurs répartis sur 8 secteu
 | `id` | Identifiant unique de l'emprunteur |
 | `sector` | Secteur économique (Energy, Tech, Consumer...) |
 | `EAD` | Exposure At Default — montant exposé (Mds€) |
-| `PD0` | Probabilité de défaut initiale $PD_0 \in (0,1)$ |
-| `LGD0` | Perte en cas de défaut initiale $LGD_0 \in (0,1)$ |
-| `rho` | Corrélation systémique $\rho$ (modèle Vasicek) |
+| `PD0` | Probabilité de défaut initiale `PD0`, strictement comprise entre 0 et 1 |
+| `LGD0` | Perte en cas de défaut initiale `LGD0`, comprise entre 0 et 1 |
+| `rho` | Corrélation systémique `rho` utilisée dans le modèle Vasicek |
 | `M` | Maturité effective |
-| `alpha_rwa` | Coefficient de pondération RWA $\alpha$ |
+| `alpha_rwa` | Coefficient de pondération RWA `alpha_rwa` |
 
 ### `inputs/capital.csv` — Paramètres de capital
 
-Généré par `simulate_capital.py` — les valeurs de $\text{CET1}_0$ et $\text{RWA}_0$ sont **dérivées du portefeuille** simulé (pas fixées arbitrairement), ce qui garantit la cohérence interne.
+Généré par `simulate_capital.py` — les valeurs de `CET1_0` et `RWA_0` sont **dérivées du portefeuille** simulé (pas fixées arbitrairement), ce qui garantit la cohérence interne.
 
 | Colonne | Description |
 |---------|-------------|
-| `CET1_0` | Capital CET1 initial (Mds€) — déduit de $R_0 \times \text{RWA}_0$ |
+| `CET1_0` | Capital CET1 initial (Mds€) — déduit de `R0 × RWA_0` |
 | `RWA_0` | Actifs pondérés initiaux (Mds€) — calculé depuis `exposures.csv` |
-| `R0` | Ratio $R_0 = \text{CET1}_0 / \text{RWA}_0 = 14\%$ |
-| `R_omega` | Seuil de rupture $\bar{R} = 11\%$ |
-| `q` | Quantile de queue $q = 99.9\%$ |
-| `Lq0_abs` | Perte de queue absolue $L_q(0)$ à la baseline |
+| `R0` | Ratio de capital baseline `R0 = CET1_0 / RWA_0 = 14%` |
+| `R_omega` | Seuil de rupture `R_omega = 11%` |
+| `q` | Quantile de queue `q = 99.9%` |
+| `Lq0_abs` | Perte de queue absolue `L_q(0)` à la baseline |
 | `baseline_convention` | Convention de correction baseline utilisée dans le pipeline |
 
 ### `inputs/sector_params.csv` — Sensibilités sectorielles
@@ -186,10 +186,10 @@ Généré par `simulate_sector_params.py` — coefficients **stylisés** documen
 
 | Colonne | Description |
 |---------|-------------|
-| `delta_g` | Sensibilité directe de $PD$ au choc géopolitique $g$ |
-| `eta_g` | Sensibilité directe de $LGD$ au choc géopolitique $g$ |
-| `b_shock_*` | Coefficients $b_j$ de transmission des chocs macro $\to PD$ |
-| `c_shock_*` | Coefficients $c_j$ de transmission des chocs macro $\to LGD$ |
+| `delta_g` | Sensibilité directe de `PD` au choc géopolitique `g` |
+| `eta_g` | Sensibilité directe de `LGD` au choc géopolitique `g` |
+| `b_shock_*` | Coefficients de transmission des chocs macro vers `PD` |
+| `c_shock_*` | Coefficients de transmission des chocs macro vers `LGD` |
 
 ### `data/raw/macro.csv` — Séries macro historiques
 
@@ -209,8 +209,8 @@ Ces trois scripts génèrent les données d'entrée du modèle **dans un ordre p
 | Ordre | Script | Sortie | Contenu |
 |-------|--------|--------|---------|
 | 1 | `simulate_exposures.py` | `inputs/exposures.csv` | 500 emprunteurs, 8 secteurs, paramètres calibrés Bâle IRB |
-| 2 | `simulate_capital.py` | `inputs/capital.csv` | $\text{RWA}_0$ dérivé du portefeuille, $R_0 = 14\%$, $\bar{R} = 11\%$ |
-| 3 | `simulate_sector_params.py` | `inputs/sector_params.csv` | Coefficients $\delta_g$, $\eta_g$, $b_j$, $c_j$ par secteur |
+| 2 | `simulate_capital.py` | `inputs/capital.csv` | `RWA_0` dérivé du portefeuille, `R0 = 14%`, `R_omega = 11%` |
+| 3 | `simulate_sector_params.py` | `inputs/sector_params.csv` | Coefficients `delta_g`, `eta_g`, `b_j`, `c_j` par secteur |
 
 Les paramètres sont **stylisés mais économiquement fondés** (hiérarchie sectorielle documentée : ECB WP 2897, EBA Stress Test 2025, ESRB 2025).
 
@@ -222,12 +222,12 @@ Les paramètres sont **stylisés mais économiquement fondés** (hiérarchie sec
 
 On transforme les séries macro brutes en **chocs standardisés** (z-scores) :
 
-1. **Transformation** : $\log$-différence pour les variables de niveau (PIB, SP500...), différence simple pour les indices (VIX, taux...)
-2. **Standardisation** : on centre et réduit chaque série — si $\tilde{s}_t$ est la série transformée, le choc est $s_t = (\tilde{s}_t - \mu) / \sigma$
-3. **Recentrage** : les valeurs du dernier trimestre connu deviennent la baseline $s = 0$
-4. **Estimation de $\Sigma$** : matrice de covariance des chocs, stabilisée par **Ledoit-Wolf shrinkage** pour éviter les problèmes numériques sur de petits échantillons
+1. **Transformation** : log-différence pour les variables de niveau (PIB, SP500...), différence simple pour les indices (VIX, taux...)
+2. **Standardisation** : on centre et réduit chaque série — si `s_tilde` est la série transformée, le choc est `s_t = (s_tilde - mu) / sigma`
+3. **Recentrage** : les valeurs du dernier trimestre connu deviennent la baseline `s = 0`
+4. **Estimation de `Sigma`** : matrice de covariance des chocs, stabilisée par **Ledoit-Wolf shrinkage** pour éviter les problèmes numériques sur de petits échantillons
 
-Résultat : vecteur $s \in \mathbb{R}^8$ avec une matrice $\Sigma \in \mathbb{R}^{8 \times 8}$ décrivant les corrélations entre chocs.
+Résultat : vecteur de scénario `s` de dimension 8 et matrice `Sigma` de taille `8 x 8`, décrivant les corrélations entre chocs.
 
 ---
 
@@ -235,29 +235,29 @@ Résultat : vecteur $s \in \mathbb{R}^8$ avec une matrice $\Sigma \in \mathbb{R}
 
 **Fichiers :** `src/model/engine.py`, `src/model/vasicek.py`, `src/model/stress_mappings.py`, `src/model/loss_model.py`
 
-Sous un scénario $s = (g, x)$, les paramètres de crédit de chaque emprunteur $i$ sont modifiés.
+Sous un scénario `s = (g, x)`, les paramètres de crédit de chaque emprunteur `i` sont modifiés.
 
 **PD stressée** (équation 7 du papier) :
 
 $$PD_{\text{stress}}(i) = PD_0(i) \cdot \sigma\left(\delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\right)$$
 
-où $\sigma(\cdot)$ est la fonction sigmoïde permettant de rester dans $(0, 1)$.
+où `sigma(.)` est la fonction sigmoïde permettant de rester dans `(0, 1)`.
 
 **LGD stressée** (équation 10 du papier) :
 
 $$LGD_{\text{stress}}(i) = \phi\left(LGD_0(i),\; \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j\right)$$
 
-où $\phi$ est une transformation lisse qui préserve l'intervalle $(0, 1)$.
+où `phi(.)` est une transformation lisse qui préserve l'intervalle `(0, 1)`.
 
-**Perte de queue par emprunteur** via le **modèle Vasicek / ASRF** au quantile $q = 99.9\%$ :
+**Perte de queue par emprunteur** via le **modèle Vasicek / ASRF** au quantile `q = 99.9%` :
 
 $$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\left(\frac{\Phi^{-1}\left(PD_{\text{stress}}(i)\right) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\right)$$
 
-**Ratio de capital** sous scénario $s$ :
+**Ratio de capital** sous scénario `s` :
 
 $$R(s) = \frac{CET1(s)}{RWA(s)} \qquad \text{avec} \quad RWA(s) = \sum_i \frac{\alpha_i \cdot K_i(s)}{0.08}$$
 
-La **correction baseline** garantit $R(0) = R_0$ exactement :
+La **correction baseline** garantit `R(0) = R_0` exactement :
 
 $$\Delta L_q(s) = L_q(s) - L_q(0)$$
 
@@ -275,7 +275,7 @@ $$\text{s.t.} \quad R(s) \leq \bar{R} \quad \text{et} \quad g \geq 0$$
 
 **Méthode** : SLSQP (Sequential Least Squares Programming) avec **multi-start** (26 points de départ : aléatoires + grille d'intensités). On garde le meilleur optimum parmi tous les points faisables.
 
-En pratique, on travaille dans l'**espace blanchi** $y = L^{-1}s$ (décomposition de Cholesky $\Sigma = LL^\top$). La distance de Mahalanobis se simplifie alors en norme euclidienne :
+En pratique, on travaille dans l'**espace blanchi** `y = L^-1 s` (décomposition de Cholesky `Sigma = L L^T`). La distance de Mahalanobis se simplifie alors en norme euclidienne :
 
 $$d^2(s) = s^\top \Sigma^{-1} s = \|y\|^2 = \|L^{-1}s\|^2$$
 
@@ -289,25 +289,19 @@ Au-delà du design point unique, on génère un **pool de scénarios plausibles*
 
 - **Boule locale** autour de `s*` :
 
-$$
-\mathcal{B}_{\eta}(s^*) = \left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \eta \right\}
-$$
+$$\mathcal{B}_{\eta}(s^*) = \left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \eta \right\}$$
 
 Elle regroupe les scénarios proches de `s*` en espace blanchi.
 
 - **Ensemble near-optimal** :
 
-$$
-\mathcal{N}_{\varphi} = \left\{ s \;:\; d^2(s) \le d^2(s^*) + \varphi \right\}
-$$
+$$\mathcal{N}_{\varphi} = \left\{ s \;:\; d^2(s) \le d^2(s^*) + \varphi \right\}$$
 
 Il regroupe les scénarios presque aussi plausibles que `s*`.
 
 Seuls les scénarios dans la **zone de rupture** suivante sont conservés :
 
-$$
-\mathcal{S}_{\mathrm{red}} = \left\{ s \;:\; R(s) \le \bar{R} \right\}
-$$
+$$\mathcal{S}_{\mathrm{red}} = \left\{ s \;:\; R(s) \le \bar{R} \right\}$$
 
 ---
 
@@ -345,103 +339,73 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 
 **Vecteur de scénario**
 
-$$
-s \in \mathbb{R}^d, \qquad d = 8
-$$
+$$s \in \mathbb{R}^d, \qquad d = 8$$
 
 `s` est le vecteur de scénario, exprimé en z-scores.
 
 **Choc géopolitique**
 
-$$
-g = s_1
-$$
+$$g = s_1$$
 
 Dans l'implémentation, `g` correspond à `shock_GPRD`.
 
 **Matrice de covariance**
 
-$$
-\Sigma \in \mathbb{R}^{d \times d}
-$$
+$$\Sigma \in \mathbb{R}^{d \times d}$$
 
 `Sigma` décrit les dépendances entre les chocs macro-financiers.
 
 **Distance de Mahalanobis**
 
-$$
-d^2(s) = s^\top \Sigma^{-1} s
-$$
+$$d^2(s) = s^\top \Sigma^{-1} s$$
 
 Cette distance mesure la plausibilité statistique du scénario.
 
 **Espace blanchi**
 
-$$
-y = L^{-1}s
-$$
+$$y = L^{-1}s$$
 
 où `L` est le facteur de Cholesky de `Sigma`.
 
 **Ratio de capital**
 
-$$
-R(s) = \frac{\mathrm{CET1}(s)}{\mathrm{RWA}(s)}
-$$
+$$R(s) = \frac{\mathrm{CET1}(s)}{\mathrm{RWA}(s)}$$
 
 Le reverse stress test cherche les scénarios qui font passer ce ratio sous le seuil.
 
 **Seuil de rupture**
 
-$$
-\bar{R} = 11\%
-$$
+$$\bar{R} = 11\%$$
 
 C'est le seuil réglementaire de rupture retenu dans le run courant.
 
 **Ratio baseline**
 
-$$
-R_0 = 14\%
-$$
+$$R_0 = 14\%$$
 
 C'est le ratio de capital au point de départ, avant stress.
 
 **Quantile de queue**
 
-$$
-q = 99.9\%
-$$
+$$q = 99.9\%$$
 
 Il correspond au niveau de sévérité retenu dans le modèle Vasicek.
 
 **Design point**
 
-$$
-s^*
-$$
+$$s^*$$
 
 `s^*` est la solution du reverse stress test : le scénario de rupture le plus plausible.
 
 **Ensemble near-optimal**
 
-$$
-\mathcal{N}_{\varepsilon}
-=
-\mathcal{S}_{\mathrm{red}}
-\cap
-\left\{ s \;:\; d^2(s) \le d^2(s^*) + \varepsilon \right\}
-$$
+$$\mathcal{N}_{\varepsilon} = \mathcal{S}_{\mathrm{red}} \cap \left\{ s \;:\; d^2(s) \le d^2(s^*) + \varepsilon \right\}$$
 
 Cet ensemble regroupe les scénarios de rupture presque aussi plausibles que `s^*`.
 
 **Boule locale autour du design point**
 
-$$
-\mathcal{B}_{\rho}(s^*)
-=
-\left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \rho \right\}
-$$
+$$\mathcal{B}_{\rho}(s^*) = \left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \rho \right\}$$
 
 Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 
@@ -503,14 +467,14 @@ Tous dans `outputs/plots/` au format PNG 300 dpi.
 
 | Fichier | Description |
 |---------|-------------|
-| `fig1_geometry.png` | **Fig 1** — Zone $\mathcal{S}_{\text{red}}$, frontière $R(s)=\bar{R}$, ellipses de Mahalanobis, $s^*$, boule $\mathcal{B}_\rho(s^*)$ |
-| `fig2_near_optimal.png` | **Fig 2** — Ensemble near-optimal $\mathcal{N}_\varepsilon$ hachuré, niveau $d^2(s^*)+\varepsilon$ |
+| `fig1_geometry.png` | **Fig 1** — Zone de rupture `S_red`, frontière `R(s) = R_bar`, ellipses de Mahalanobis, `s*`, boule locale autour de `s*` |
+| `fig2_near_optimal.png` | **Fig 2** — Ensemble near-optimal `N_epsilon` hachuré, niveau `d^2(s*) + epsilon` |
 | `fig3_roadmap.png` | **Fig 3** — Roadmap d'implémentation en 4 étapes (flowchart) |
-| `fig4_scenario_selection.png` | **Fig 4** — Pool $\mathcal{C}_N$ → ancres géopolitiques $g_j$ → shortlist farthest-point $\mathcal{C}_P$ |
-| `fig5_plausibility.png` | **Fig 5** — Heatmaps $-\log_{10}(p\text{-valeur})$ : Gaussienne vs Student-$t$ ($\nu=6$) |
-| `scenario_profile.png` | Profil de $s^*$ — chocs en z-scores par variable |
-| `sector_impact.png` | $L_q$ par secteur au design point $s^*$ |
-| `sector_pd_lgd.png` | Graphique à bulles $PD_{\text{stress}}$ vs $LGD_{\text{stress}}$ par secteur (taille $\propto$ EAD) |
+| `fig4_scenario_selection.png` | **Fig 4** — Pool `C_N` → ancres géopolitiques `g_j` → shortlist farthest-point `C_P` |
+| `fig5_plausibility.png` | **Fig 5** — Heatmaps de `-log10(p-value)` : Gaussienne vs Student-t (`nu = 6`) |
+| `scenario_profile.png` | Profil de `s*` — chocs en z-scores par variable |
+| `sector_impact.png` | `L_q` par secteur au design point `s*` |
+| `sector_pd_lgd.png` | Graphique à bulles `PD_stress` vs `LGD_stress` par secteur (taille proportionnelle à `EAD`) |
 | `frontier_plot.png` | Visualisation legacy de la frontière (script original) |
 
 ---
@@ -522,13 +486,13 @@ Tous dans `src/config.py` :
 | Paramètre | Valeur | Description |
 |-----------|--------|-------------|
 | `SEED` | `42` | Graine aléatoire (reproductibilité) |
-| `USE_LEDOIT_WOLF` | `True` | Stabilisation de $\Sigma$ par Ledoit-Wolf shrinkage |
-| `ENFORCE_STRESS_ONLY_FLOOR` | `False` | Forcer $PD_{\text{stress}} \geq PD_0$ et $LGD_{\text{stress}} \geq LGD_0$ |
-| `G_COL` | `"shock_GPRD"` | Nom de la colonne du choc géopolitique $g$ |
-| `ETA_LOCAL` | `1.0` | Rayon $\eta$ de la boule locale $\mathcal{B}_\eta(s^*)$ |
-| `PHI_NEAR` | `1.0` | Marge near-optimal $\varphi$ : $d^2(s) \leq d^2(s^*) + \varphi$ |
-| `POOL_SIZE` | `4000` | Nombre de candidats générés dans $\mathcal{C}_N$ |
-| `SHORTLIST_SIZE` | `8` | Taille $P$ de la shortlist finale $\mathcal{C}_P$ |
+| `USE_LEDOIT_WOLF` | `True` | Stabilisation de `Sigma` par Ledoit-Wolf shrinkage |
+| `ENFORCE_STRESS_ONLY_FLOOR` | `False` | Forcer `PD_stress >= PD0` et `LGD_stress >= LGD0` |
+| `G_COL` | `"shock_GPRD"` | Nom de la colonne du choc géopolitique `g` |
+| `ETA_LOCAL` | `1.0` | Rayon `eta` de la boule locale autour de `s*` |
+| `PHI_NEAR` | `1.0` | Marge near-optimal `phi` : `d^2(s) <= d^2(s*) + phi` |
+| `POOL_SIZE` | `4000` | Nombre de candidats générés dans `C_N` |
+| `SHORTLIST_SIZE` | `8` | Taille `P` de la shortlist finale `C_P` |
 
 ---
 
@@ -546,7 +510,7 @@ Ce script exécute **4 étapes dans l'ordre** :
 | Étape | Fonction | Ce qui est produit |
 |-------|----------|--------------------|
 | **0** | `run_simulations()` | `inputs/exposures.csv`, `capital.csv`, `sector_params.csv` |
-| **1** | `run_pipeline()` | Tables CSV, rapports JSON/Markdown, design point $s^*$ |
+| **1** | `run_pipeline()` | Tables CSV, rapports JSON/Markdown, design point `s*` |
 | **2** | `run_legacy_visualizations()` | `frontier_plot.png` (script original) |
 | **3** | `run_src_visualizations()` | 8 figures du papier (`fig1` à `fig5` + profil + secteurs) |
 
