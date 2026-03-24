@@ -251,7 +251,7 @@ où `phi(.)` est une transformation lisse qui préserve l'intervalle `(0, 1)`.
 
 **Perte de queue par emprunteur** via le **modèle Vasicek / ASRF** au quantile `q = 99.9%` :
 
-$$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\left(\frac{\Phi^{-1}\left(PD_{\text{stress}}(i)\right) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\right)$$
+$$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\!\left(\frac{\Phi^{-1}(PD_{\text{stress}}(i)) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\right)$$
 
 **Ratio de capital** sous scénario `s` :
 
@@ -289,19 +289,19 @@ Au-delà du design point unique, on génère un **pool de scénarios plausibles*
 
 - **Boule locale** autour de `s*` :
 
-$$\mathcal{B}_{\eta}(s^*) = \left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \eta \right\}$$
+$$\mathcal{B}_{\eta}(s^{*}) = \{\, s : \|L^{-1}(s-s^{*})\|^2 \le \eta \,\}$$
 
 Elle regroupe les scénarios proches de `s*` en espace blanchi.
 
 - **Ensemble near-optimal** :
 
-$$\mathcal{N}_{\varphi} = \left\{ s \;:\; d^2(s) \le d^2(s^*) + \varphi \right\}$$
+$$\mathcal{N}_{\varphi} = \{\, s : d^2(s) \le d^2(s^{*}) + \varphi \,\}$$
 
 Il regroupe les scénarios presque aussi plausibles que `s*`.
 
 Seuls les scénarios dans la **zone de rupture** suivante sont conservés :
 
-$$\mathcal{S}_{\mathrm{red}} = \left\{ s \;:\; R(s) \le \bar{R} \right\}$$
+$$\mathcal{S}_{\mathrm{red}} = \{\, s : R(s) \le \bar{R} \,\}$$
 
 ---
 
@@ -311,7 +311,7 @@ $$\mathcal{S}_{\mathrm{red}} = \left\{ s \;:\; R(s) \le \bar{R} \right\}$$
 
 On réduit le pool à **8 scénarios gouvernance-ready** via l'algorithme **farthest-point maximin** (équation 49 du papier) :
 
-$$s^{(p)} = \underset{s \in \mathcal{C}_N}{\arg\max} \; \min_{p' < p} \left\| L^{-1}\left(s - s^{(p')}\right) \right\|_2$$
+$$s^{(p)} = \underset{s \in \mathcal{C}_N}{\arg\max} \; \min_{p' < p} \|L^{-1}(s - s^{(p')})\|_2$$
 
 À chaque itération, on choisit le scénario le plus éloigné de tous ceux déjà sélectionnés. Cela garantit **diversité** et **couverture maximale** de la frontière de rupture.
 
@@ -393,19 +393,19 @@ Il correspond au niveau de sévérité retenu dans le modèle Vasicek.
 
 **Design point**
 
-$$s^*$$
+$$s^{*}$$
 
 `s^*` est la solution du reverse stress test : le scénario de rupture le plus plausible.
 
 **Ensemble near-optimal**
 
-$$\mathcal{N}_{\varepsilon} = \mathcal{S}_{\mathrm{red}} \cap \left\{ s \;:\; d^2(s) \le d^2(s^*) + \varepsilon \right\}$$
+$$\mathcal{N}_{\varepsilon} = \mathcal{S}_{\mathrm{red}} \cap \{\, s : d^2(s) \le d^2(s^{*}) + \varepsilon \,\}$$
 
 Cet ensemble regroupe les scénarios de rupture presque aussi plausibles que `s^*`.
 
 **Boule locale autour du design point**
 
-$$\mathcal{B}_{\rho}(s^*) = \left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \rho \right\}$$
+$$\mathcal{B}_{\rho}(s^{*}) = \{\, s : \|L^{-1}(s-s^{*})\|^2 \le \rho \,\}$$
 
 Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 
