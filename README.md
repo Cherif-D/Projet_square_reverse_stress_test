@@ -108,8 +108,10 @@ Reverse_stress_test/
 │   │   └── sector_aggregation.py ← Agrégation par secteur
 │   │
 │   ├── model/                  ← Modèle de pertes et de capital
+│   │   ├── engine.py           ← Moteur quantitatif central du RST
+│   │   ├── vasicek.py          ← Fonctions ASRF / Vasicek
 │   │   ├── stress_mappings.py  ← Fonctions de transmission PD et LGD sous stress
-│   │   ├── loss_model.py       ← Calcul de Lq, CET1, RWA, ratio R
+│   │   ├── loss_model.py       ← Wrapper de compatibilité pour le calcul de Lq, CET1, RWA, ratio R
 │   │   ├── capital_model.py    ← Formules pures CET1, RWA, ratio
 │   │   └── baseline.py         ← Diagnostic du contexte initial
 │   │
@@ -120,7 +122,7 @@ Reverse_stress_test/
 │   │
 │   ├── reporting/              ← Sauvegarde des résultats
 │   │   ├── save_tables.py      ← Export des CSV
-│   │   └── save_reports.py     ← Export du résumé (JSON + Markdown)
+│   │   └── save_reports.py     ← Export du résumé et de la note de gouvernance
 │   │
 │   └── visualization/          ← Graphiques
 │       ├── helpers.py          ← Fonctions partagées (grille, ratio, distance)
@@ -131,6 +133,10 @@ Reverse_stress_test/
 │       ├── fig5_plausibility.py ← Fig 5 papier : Gaussienne vs Student-t
 │       ├── scenario_profile.py ← Profil des chocs au design point
 │       └── sector_impact.py    ← Impact sectoriel (pertes + PD/LGD)
+│
+├── tests/                      ← Tests unitaires ciblés
+│   ├── test_vasicek.py         ← Robustesse numérique et monotonie du module Vasicek
+│   └── test_sector_aggregation.py ← Réconciliation de l'agrégation sectorielle
 │
 ├── MVP.py                      ← Script monolithique original (conservé)
 ├── visualize_frontier.py       ← Visualisation frontière (original, conservé)
@@ -227,25 +233,25 @@ Résultat : vecteur $s \in \mathbb{R}^8$ avec une matrice $\Sigma \in \mathbb{R}
 
 ### Étape 2 — Modèle de pertes sous stress
 
-**Fichiers :** `src/model/stress_mappings.py`, `src/model/loss_model.py`
+**Fichiers :** `src/model/engine.py`, `src/model/vasicek.py`, `src/model/stress_mappings.py`, `src/model/loss_model.py`
 
 Sous un scénario $s = (g, x)$, les paramètres de crédit de chaque emprunteur $i$ sont modifiés.
 
 **PD stressée** (équation 7 du papier) :
 
-$$PD_{\text{stress}}(i) = PD_0(i) \cdot \sigma\!\left(\delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\right)$$
+$$PD_{\text{stress}}(i) = PD_0(i) \cdot \sigma\left(\delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\right)$$
 
 où $\sigma(\cdot)$ est la fonction sigmoïde permettant de rester dans $(0, 1)$.
 
 **LGD stressée** (équation 10 du papier) :
 
-$$LGD_{\text{stress}}(i) = \phi\!\left(LGD_0(i),\; \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j\right)$$
+$$LGD_{\text{stress}}(i) = \phi\left(LGD_0(i),\; \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j\right)$$
 
 où $\phi$ est une transformation lisse qui préserve l'intervalle $(0, 1)$.
 
 **Perte de queue par emprunteur** via le **modèle Vasicek / ASRF** au quantile $q = 99.9\%$ :
 
-$$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\!\left(\frac{\Phi^{-1}\!\left(PD_{\text{stress}}(i)\right) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\right)$$
+$$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\left(\frac{\Phi^{-1}\left(PD_{\text{stress}}(i)\right) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\right)$$
 
 **Ratio de capital** sous scénario $s$ :
 
@@ -294,7 +300,7 @@ Seuls les scénarios dans la **zone de rupture** $\mathcal{S}_{\text{red}} = \{s
 
 On réduit le pool à **8 scénarios gouvernance-ready** via l'algorithme **farthest-point maximin** (équation 49 du papier) :
 
-$$s^{(p)} = \underset{s \in \mathcal{C}_N}{\arg\max} \; \min_{p' < p} \left\| L^{-1}\!\left(s - s^{(p')}\right) \right\|_2$$
+$$s^{(p)} = \underset{s \in \mathcal{C}_N}{\arg\max} \; \min_{p' < p} \left\| L^{-1}\left(s - s^{(p')}\right) \right\|_2$$
 
 À chaque itération, on choisit le scénario le plus éloigné de tous ceux déjà sélectionnés. Cela garantit **diversité** et **couverture maximale** de la frontière de rupture.
 
@@ -357,6 +363,7 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 | `summary.json` | Tous les indicateurs clés (baseline, design point, ensembles) |
 | `summary.md` | Version lisible du résumé |
 | `sigma_report.json` | Détails de l'estimation de $\Sigma$ |
+| `calibration_backtesting_note.md` | Limites, calibration minimale et garde-fous de gouvernance |
 | `tutor_data_context.json` | Contexte complet des données pour auditabilité |
 
 ### Résultats chiffrés (run de référence)
@@ -456,6 +463,12 @@ env\Scripts\python.exe Simulations/simulate_sector_params.py
 ```bash
 env\Scripts\python.exe -m src.visualization.fig1_geometry
 env\Scripts\python.exe -m src.visualization.fig5_plausibility
+```
+
+### Lancement des tests unitaires
+
+```bash
+env\Scripts\python.exe -m unittest discover -s tests
 ```
 
 ### Lancement du script original (MVP)
