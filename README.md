@@ -287,10 +287,27 @@ $$d^2(s) = s^\top \Sigma^{-1} s = \|y\|^2 = \|L^{-1}s\|^2$$
 
 Au-delà du design point unique, on génère un **pool de scénarios plausibles** à partir de deux ensembles :
 
-- **Boule locale** `B_eta(s*)` : scénarios proches de `s*` en espace blanchi, définis par `||L^-1 (s - s*)||^2 <= eta`
-- **Ensemble near-optimal** `N_phi` : scénarios presque aussi plausibles que `s*`, définis par `d^2(s) <= d^2(s*) + phi`
+- **Boule locale** autour de `s*` :
 
-Seuls les scénarios dans la **zone de rupture** `S_red = { s : R(s) <= R_bar }` sont conservés.
+$$
+\mathcal{B}_{\eta}(s^*) = \left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \eta \right\}
+$$
+
+Elle regroupe les scénarios proches de `s*` en espace blanchi.
+
+- **Ensemble near-optimal** :
+
+$$
+\mathcal{N}_{\varphi} = \left\{ s \;:\; d^2(s) \le d^2(s^*) + \varphi \right\}
+$$
+
+Il regroupe les scénarios presque aussi plausibles que `s*`.
+
+Seuls les scénarios dans la **zone de rupture** suivante sont conservés :
+
+$$
+\mathcal{S}_{\mathrm{red}} = \left\{ s \;:\; R(s) \le \bar{R} \right\}
+$$
 
 ---
 
@@ -324,20 +341,109 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 
 ## 6. Formules mathématiques clés
 
-> Note de lecture : certains viewers Markdown affichent mal le LaTeX inline dans les listes et les tableaux. Les notations ci-dessous sont donc données en écriture texte pour garantir un affichage correct partout.
+> Les formules clés sont données ci-dessous en blocs LaTeX autonomes, car ce format est en général mieux affiché que le LaTeX dans les tableaux Markdown.
 
-- `s in R^d` : vecteur de scénario (`d = 8` variables en z-scores)
-- `g = s_1` : choc géopolitique (`shock_GPRD`)
-- `Sigma in R^(dxd)` : matrice de covariance des chocs, estimée par Ledoit-Wolf
-- `d^2(s) = s^T Sigma^-1 s` : distance de Mahalanobis au carré, utilisée comme mesure de plausibilité
-- `y = L^-1 s` : espace blanchi (`L` = facteur de Cholesky de `Sigma`)
-- `R(s) = CET1(s) / RWA(s)` : ratio de capital sous scénario `s`
-- `R_bar = 11%` : seuil de rupture réglementaire
-- `R_0 = 14%` : ratio de capital à la baseline
-- `q = 99.9%` : quantile de queue dans le modèle Vasicek
-- `s*` : design point, c'est-à-dire la solution du RST
-- `N_epsilon = S_red ∩ { d^2(s) <= d^2(s*) + epsilon }` : ensemble near-optimal
-- `B_rho(s*) = { ||L^-1 (s - s*)||^2 <= rho }` : boule locale autour de `s*`
+**Vecteur de scénario**
+
+$$
+s \in \mathbb{R}^d, \qquad d = 8
+$$
+
+`s` est le vecteur de scénario, exprimé en z-scores.
+
+**Choc géopolitique**
+
+$$
+g = s_1
+$$
+
+Dans l'implémentation, `g` correspond à `shock_GPRD`.
+
+**Matrice de covariance**
+
+$$
+\Sigma \in \mathbb{R}^{d \times d}
+$$
+
+`Sigma` décrit les dépendances entre les chocs macro-financiers.
+
+**Distance de Mahalanobis**
+
+$$
+d^2(s) = s^\top \Sigma^{-1} s
+$$
+
+Cette distance mesure la plausibilité statistique du scénario.
+
+**Espace blanchi**
+
+$$
+y = L^{-1}s
+$$
+
+où `L` est le facteur de Cholesky de `Sigma`.
+
+**Ratio de capital**
+
+$$
+R(s) = \frac{\mathrm{CET1}(s)}{\mathrm{RWA}(s)}
+$$
+
+Le reverse stress test cherche les scénarios qui font passer ce ratio sous le seuil.
+
+**Seuil de rupture**
+
+$$
+\bar{R} = 11\%
+$$
+
+C'est le seuil réglementaire de rupture retenu dans le run courant.
+
+**Ratio baseline**
+
+$$
+R_0 = 14\%
+$$
+
+C'est le ratio de capital au point de départ, avant stress.
+
+**Quantile de queue**
+
+$$
+q = 99.9\%
+$$
+
+Il correspond au niveau de sévérité retenu dans le modèle Vasicek.
+
+**Design point**
+
+$$
+s^*
+$$
+
+`s^*` est la solution du reverse stress test : le scénario de rupture le plus plausible.
+
+**Ensemble near-optimal**
+
+$$
+\mathcal{N}_{\varepsilon}
+=
+\mathcal{S}_{\mathrm{red}}
+\cap
+\left\{ s \;:\; d^2(s) \le d^2(s^*) + \varepsilon \right\}
+$$
+
+Cet ensemble regroupe les scénarios de rupture presque aussi plausibles que `s^*`.
+
+**Boule locale autour du design point**
+
+$$
+\mathcal{B}_{\rho}(s^*)
+=
+\left\{ s \;:\; \left\|L^{-1}(s-s^*)\right\|^2 \le \rho \right\}
+$$
+
+Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 
 ---
 
