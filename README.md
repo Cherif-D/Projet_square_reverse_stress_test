@@ -239,19 +239,19 @@ Sous un scénario `s = (g, x)`, les paramètres de crédit de chaque emprunteur 
 
 **PD stressée** (équation 7 du papier) :
 
-$$PD_{\text{stress}}(i) = PD_0(i) \cdot \sigma\left(\delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\right)$$
+$$PD_{\text{stress}}(i) = PD_0(i) \cdot \sigma\bigl(\delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\bigr)$$
 
 où `sigma(.)` est la fonction sigmoïde permettant de rester dans `(0, 1)`.
 
 **LGD stressée** (équation 10 du papier) :
 
-$$LGD_{\text{stress}}(i) = \phi\left(LGD_0(i),\; \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j\right)$$
+$$LGD_{\text{stress}}(i) = \phi\bigl(LGD_0(i),\; \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j\bigr)$$
 
 où `phi(.)` est une transformation lisse qui préserve l'intervalle `(0, 1)`.
 
 **Perte de queue par emprunteur** via le **modèle Vasicek / ASRF** au quantile `q = 99.9%` :
 
-$$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\!\left(\frac{\Phi^{-1}(PD_{\text{stress}}(i)) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\right)$$
+$$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\!\biggl(\frac{\Phi^{-1}(PD_{\text{stress}}(i)) + \sqrt{\rho_i}\,\Phi^{-1}(q)}{\sqrt{1 - \rho_i}}\biggr)$$
 
 **Ratio de capital** sous scénario `s` :
 
@@ -277,7 +277,7 @@ $$\text{s.t.} \quad R(s) \leq \bar{R} \quad \text{et} \quad g \geq 0$$
 
 En pratique, on travaille dans l'**espace blanchi** `y = L^-1 s` (décomposition de Cholesky `Sigma = L L^T`). La distance de Mahalanobis se simplifie alors en norme euclidienne :
 
-$$d^2(s) = s^\top \Sigma^{-1} s = \|y\|^2 = \|L^{-1}s\|^2$$
+$$d^2(s) = s^\top \Sigma^{-1} s = \lVert y \rVert^2 = \lVert L^{-1}s \rVert^2$$
 
 ---
 
@@ -289,19 +289,19 @@ Au-delà du design point unique, on génère un **pool de scénarios plausibles*
 
 - **Boule locale** autour de `s*` :
 
-$$\mathcal{B}_{\eta}(s^{*}) = \{\, s : \|L^{-1}(s-s^{*})\|^2 \le \eta \,\}$$
+$$\mathcal{B}_{\eta}(s^\star) = \lbrace s : \lVert L^{-1}(s-s^\star) \rVert^2 \le \eta \rbrace$$
 
 Elle regroupe les scénarios proches de `s*` en espace blanchi.
 
 - **Ensemble near-optimal** :
 
-$$\mathcal{N}_{\varphi} = \{\, s : d^2(s) \le d^2(s^{*}) + \varphi \,\}$$
+$$\mathcal{N}_{\varphi} = \lbrace s : d^2(s) \le d^2(s^\star) + \varphi \rbrace$$
 
 Il regroupe les scénarios presque aussi plausibles que `s*`.
 
 Seuls les scénarios dans la **zone de rupture** suivante sont conservés :
 
-$$\mathcal{S}_{\mathrm{red}} = \{\, s : R(s) \le \bar{R} \,\}$$
+$$\mathcal{S}_{\mathrm{red}} = \lbrace s : R(s) \le \bar{R} \rbrace$$
 
 ---
 
@@ -311,7 +311,7 @@ $$\mathcal{S}_{\mathrm{red}} = \{\, s : R(s) \le \bar{R} \,\}$$
 
 On réduit le pool à **8 scénarios gouvernance-ready** via l'algorithme **farthest-point maximin** (équation 49 du papier) :
 
-$$s^{(p)} = \underset{s \in \mathcal{C}_N}{\arg\max} \; \min_{p' < p} \|L^{-1}(s - s^{(p')})\|_2$$
+$$s^{(p)} = \underset{s \in \mathcal{C}_N}{\arg\max} \; \min_{p' < p} \lVert L^{-1}(s - s^{(p')}) \rVert_2$$
 
 À chaque itération, on choisit le scénario le plus éloigné de tous ceux déjà sélectionnés. Cela garantit **diversité** et **couverture maximale** de la frontière de rupture.
 
@@ -334,8 +334,6 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 ---
 
 ## 6. Formules mathématiques clés
-
-> Les formules clés sont données ci-dessous en blocs LaTeX autonomes, car ce format est en général mieux affiché que le LaTeX dans les tableaux Markdown.
 
 **Vecteur de scénario**
 
@@ -393,19 +391,19 @@ Il correspond au niveau de sévérité retenu dans le modèle Vasicek.
 
 **Design point**
 
-$$s^{*}$$
+$$s^\star$$
 
 `s^*` est la solution du reverse stress test : le scénario de rupture le plus plausible.
 
 **Ensemble near-optimal**
 
-$$\mathcal{N}_{\varepsilon} = \mathcal{S}_{\mathrm{red}} \cap \{\, s : d^2(s) \le d^2(s^{*}) + \varepsilon \,\}$$
+$$\mathcal{N}_{\varepsilon} = \mathcal{S}_{\mathrm{red}} \cap \lbrace s : d^2(s) \le d^2(s^\star) + \varepsilon \rbrace$$
 
 Cet ensemble regroupe les scénarios de rupture presque aussi plausibles que `s^*`.
 
 **Boule locale autour du design point**
 
-$$\mathcal{B}_{\rho}(s^{*}) = \{\, s : \|L^{-1}(s-s^{*})\|^2 \le \rho \,\}$$
+$$\mathcal{B}_{\rho}(s^\star) = \lbrace s : \lVert L^{-1}(s-s^\star) \rVert^2 \le \rho \rbrace$$
 
 Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 
