@@ -29,7 +29,7 @@ from src.config import ETA_LOCAL, G_COL
 from src.paths import OUTPUTS
 from src.visualization.helpers import (
     compute_Z_ratio_and_dist,
-    load_viz_data,
+    load_viz_context,
     make_grid,
 )
 
@@ -60,7 +60,7 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
     - Boule locale B_rho(s*) autour de s* (ellipse verte pointillée)
     - Voisinage local S_rho (zone hachurée verte)
     """
-    exposures, capital, sector_params, design_point, sigma, summary = load_viz_data()
+    engine, design_point, sigma, summary = load_viz_context()
 
     # Axes : géopolitique (X) vs premier driver macro (Y)
     macro_drivers = design_point.drop(G_COL).abs().sort_values(ascending=False)
@@ -78,10 +78,10 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
 
     Z_ratio, Z_dist = compute_Z_ratio_and_dist(
         X_grid, Y_grid, design_point, x_driver, y_driver,
-        exposures, capital, sector_params, inv_sigma
+        engine, inv_sigma
     )
 
-    threshold = float(capital["R_omega"])
+    threshold = float(engine.R_omega)
     d2_star   = float(summary["design_point_d2"])
     rho_local = ETA_LOCAL
 

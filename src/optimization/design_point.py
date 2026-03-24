@@ -29,6 +29,7 @@ from scipy.optimize import minimize
 from scipy.stats import chi2
 
 from src.config import G_COL, RNG
+from src.model.engine import ReverseStressEngine
 
 
 def build_starting_points(feature_cols, L):
@@ -59,7 +60,7 @@ def build_starting_points(feature_cols, L):
     return starts
 
 
-def solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn):
+def solve_design_point(feature_cols, Sigma_inv, L, engine: ReverseStressEngine):
     """
     On résout le design point.
 
@@ -79,7 +80,7 @@ def solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn):
                g(Ly) >= 0
     """
     g_idx   = feature_cols.index(G_COL)
-    R_omega = float(capital["R_omega"])
+    R_omega = float(engine.R_omega)
 
     def s_from_y(y):
         return L @ y
@@ -89,8 +90,8 @@ def solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn):
 
     def cst_break(y):
         s   = s_from_y(y)
-        out = loss_rwa_ratio_fn(s)
-        return R_omega - out["R"]
+        out = engine.evaluate(s, include_exposures=False)
+        return out["break_slack"]
 
     def cst_g_positive(y):
         s = s_from_y(y)
@@ -118,7 +119,7 @@ def solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn):
 
         y_star = res.x
         s_star = s_from_y(y_star)
-        out    = loss_rwa_ratio_fn(s_star)
+        out = engine.evaluate(s_star, include_exposures=True)
 
         if out["R"] <= R_omega + 1e-6 and s_star[g_idx] >= -1e-8:
             d2   = float(s_star.T @ Sigma_inv @ s_star)
@@ -133,14 +134,17 @@ def solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn):
                 "RWA"        : out["RWA"],
                 "CET1"       : out["CET1"],
                 "Lq_baseline": out["Lq_baseline"],
+                "break_slack": out["break_slack"],
+                "constraint_saturated": bool(abs(out["break_slack"]) <= 1e-6),
                 "d2"         : d2,
                 "pval"       : pval,
                 "stressed"   : out["stressed"],
                 "success"    : True,
+                "nit"        : getattr(res, "nit", None),
             })
 
     if not sols:
         raise RuntimeError("Aucune solution faisable trouvée. Vérifie les inputs ou la sévérité des paramètres.")
 
-    best = min(sols, key=lambda z: z["d2"])
+    best = min(sols, key=lambda z: (z["d2"], abs(z["break_slack"])))
     return best, sols

@@ -137,3 +137,26 @@ credentials.json
 .mypy_cache/
 .coverage
 htmlcov/
+
+# ============================
+# Local Audit / Note Artifacts
+# ============================
+.claude/
+
+# Temporary analysis helpers and extracted text
+tmp_*.py
+tmp_*.txt
+tmp_pdf_texts/
+
+# Local working documents that should stay off git
+Documents/Capture d'écran*.png
+Documents/DSR_note_exemple.pdf
+Documents/Projets STORM - Master ESA.pdf
+Documents/preambule.txt
+
+# Rendered note PDFs and upload bundles
+Reverse_stress_test_gpt_version_courte.pdf
+overleaf_upload*.zip
+zip.gpt*.zip
+overleaf_zip_gpt/
+overleaf_zip_gpt_version2/

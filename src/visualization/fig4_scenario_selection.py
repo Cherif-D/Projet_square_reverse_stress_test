@@ -28,12 +28,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.config import G_COL
+from src.config import G_COL, PHI_NEAR
 from src.paths import OUTPUTS, TABLES
 from src.visualization.helpers import (
     compute_Z_ratio_and_dist,
     compute_ratio_grid,
-    load_viz_data,
+    load_viz_context,
     make_grid,
 )
 
@@ -64,7 +64,7 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
     - Shortlist farthest-point (losanges noirs avec étiquettes)
     - Design point s* (étoile rouge)
     """
-    exposures, capital, sector_params, design_point, sigma, summary = load_viz_data()
+    engine, design_point, sigma, summary = load_viz_context()
 
     pool_path      = TABLES / "candidate_pool.csv"
     shortlist_path = TABLES / "scenario_shortlist.csv"
@@ -90,10 +90,10 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
 
     Z_ratio, Z_dist = compute_Z_ratio_and_dist(
         X_grid, Y_grid, design_point, x_driver, y_driver,
-        exposures, capital, sector_params, inv_sigma
+        engine, inv_sigma
     )
 
-    threshold = float(capital["R_omega"])
+    threshold = float(engine.R_omega)
     d2_star   = float(summary["design_point_d2"])
     gx        = float(design_point[x_driver])
     gy        = float(design_point[y_driver])
@@ -107,9 +107,9 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
     g_levels   = np.linspace(0.02, gx * 2.5, 8)
     anchor_pts = []
     for g_val in g_levels:
-        s_anchor         = design_point.copy()
+        s_anchor = design_point.copy()
         s_anchor[x_driver] = g_val
-        r_val = compute_ratio_grid(dict(s_anchor), exposures, capital, sector_params)
+        r_val = compute_ratio_grid(dict(s_anchor), engine, anchor=design_point.values)
         if r_val <= threshold + 0.005:
             anchor_pts.append((g_val, float(s_anchor[y_driver])))
 
@@ -125,14 +125,14 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
                 cmap="Reds_r", alpha=0.20)
 
     # 2. N_epsilon = S_red ∩ {d² <= d²* + 1} (hachuré jaune)
-    N_eps_mask = ((Z_ratio <= threshold) & (Z_dist <= d2_star + 1.0)).astype(float)
+    N_eps_mask = ((Z_ratio <= threshold) & (Z_dist <= d2_star + PHI_NEAR)).astype(float)
     ax.contourf(X_grid, Y_grid, N_eps_mask,
                 levels=[0.5, 1.5], colors=["#FFF176"], alpha=0.70, hatches=["///"])
     ax.contour(X_grid, Y_grid, N_eps_mask,
                levels=[0.5], colors=["#F9A825"], linewidths=1.0, linestyles=":")
 
     # 3. Ellipses de Mahalanobis (repère)
-    levels_ell = sorted(set([round(d2_star, 3), 1.0, round(d2_star + 1.0, 3)]))
+    levels_ell = sorted(set([round(d2_star, 3), 1.0, round(d2_star + PHI_NEAR, 3)]))
     ax.contour(X_grid, Y_grid, Z_dist,
                levels=levels_ell,
                colors=["#90CAF9"], linestyles="--", linewidths=1.4, alpha=0.7)

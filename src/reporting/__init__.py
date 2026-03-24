@@ -1,4 +1,4 @@
-from src.reporting.save_reports import save_summary
+from src.reporting.save_reports import save_calibration_governance_note, save_summary
 from src.reporting.save_tables import (
     save_baseline_exposure_metrics,
     save_candidate_pool,
@@ -10,6 +10,7 @@ from src.reporting.save_tables import (
 
 __all__ = [
     "save_summary",
+    "save_calibration_governance_note",
     "save_baseline_exposure_metrics",
     "save_candidate_pool",
     "save_design_point",

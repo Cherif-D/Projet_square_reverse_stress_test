@@ -53,8 +53,11 @@ def build_shortlist(pool: pd.DataFrame, feature_cols: list[str], L: np.ndarray, 
     if pool.empty:
         return pool.copy()
 
-    Y         = np.linalg.solve(L, pool[feature_cols].values.T).T
-    start_idx = int(np.argmin(pool["d2"].values))
+    Y = np.linalg.solve(L, pool[feature_cols].values.T).T
+    if "is_design_point" in pool.columns and pool["is_design_point"].any():
+        start_idx = int(np.flatnonzero(pool["is_design_point"].to_numpy())[0])
+    else:
+        start_idx = int(np.argmin(pool["d2"].values))
     idx       = farthest_point_selection(Y, P=min(P, len(pool)), start_idx=start_idx)
     shortlist = pool.iloc[idx].copy()
     return shortlist

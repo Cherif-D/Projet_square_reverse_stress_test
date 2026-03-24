@@ -366,16 +366,19 @@ Ratio baseline        R₀  = 14.00%
 Seuil de rupture      R̄   = 11.00%
 Ratio au design point R*  = 11.00%   ← frontière exacte
 
+Note de lecture : dans le run courant, le seuil de rupture correspond à une
+déplétion absolue de 300 bp, soit 14.00% -> 11.00%.
+
 Design point s* (z-scores) :
   shock_GPRD   = +0.1845   ← choc géopolitique
   shock_gdp    = -0.1653   ← baisse PIB
   shock_unrate = +0.1312   ← hausse chômage
   shock_vix    = +0.1258   ← hausse volatilité
 
-d²(s*) = 0.0765            ← très petit : scénario très plausible
-p-value = 99.99999%         ← non extrême statistiquement
+d²(s*) = 0.076508          ← distance de Mahalanobis du design point
+p-value = 0.99999991       ← plausibilité élevée sous χ² à 8 degrés de liberté
 
-Pool de candidats : 538 scénarios
+Pool de candidats : 3516 scénarios
 Shortlist finale  :   8 scénarios
 ```
 

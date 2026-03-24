@@ -30,7 +30,7 @@ def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
 
 
-def smooth_unit_interval(raw_value: float, center: float = 0.5, scale: float = 0.15) -> float:
+def smooth_unit_interval(raw_value, center: float = 0.5, scale: float = 0.15):
     """
     Projection lisse dans (0,1).
 
@@ -41,7 +41,11 @@ def smooth_unit_interval(raw_value: float, center: float = 0.5, scale: float = 0
     La transformation renvoie une valeur dans (0.02, 0.98),
     ce qui évite les problèmes numériques sur les bords.
     """
-    return float(0.02 + 0.96 * sigmoid((raw_value - center) / scale))
+    raw_arr = np.asarray(raw_value, dtype=float)
+    smoothed = 0.02 + 0.96 * sigmoid((raw_arr - center) / scale)
+    if raw_arr.ndim == 0:
+        return float(smoothed)
+    return smoothed
 
 
 def inverse_smooth_unit_interval(u: float, center: float = 0.5, scale: float = 0.15) -> float:

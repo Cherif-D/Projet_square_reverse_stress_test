@@ -41,15 +41,14 @@ import pandas as pd
 
 from src.config import ETA_LOCAL, PHI_NEAR, POOL_SIZE, SHORTLIST_SIZE
 from src.model.baseline import inspect_tutor_data_context
-from src.model.loss_model import build_loss_rwa_ratio_fn
-from src.model.stress_mappings import build_stressed_exposures_fn
+from src.model.engine import build_reverse_stress_engine
 from src.optimization.candidate_sets import generate_candidate_pool
 from src.optimization.design_point import solve_design_point
 from src.optimization.shortlist import build_shortlist
 from src.paths import OUTPUTS
 from src.portfolio.loaders import load_inputs
 from src.portfolio.sector_aggregation import build_sector_diagnostics
-from src.reporting.save_reports import save_summary
+from src.reporting.save_reports import save_calibration_governance_note, save_summary
 from src.reporting.save_tables import (
     save_baseline_exposure_metrics,
     save_candidate_pool,
@@ -78,20 +77,14 @@ def main():
     exposures, capital, sector_params = load_inputs()
 
     # --------------------------------------------------------
-    # Étape 3 : fonctions PD/LGD
+    # Étape 3 : moteur quantitatif central
     # --------------------------------------------------------
-    stressed_exposures_fn = build_stressed_exposures_fn(feature_cols, exposures, sector_params)
-
-    # --------------------------------------------------------
-    # Étape 4 : fonctions Lq / CET1 / RWA / ratio
-    # --------------------------------------------------------
-    loss_rwa_ratio_fn = build_loss_rwa_ratio_fn(exposures, capital, stressed_exposures_fn)
+    engine = build_reverse_stress_engine(feature_cols, exposures, capital, sector_params)
 
     # --------------------------------------------------------
     # Baseline s = 0
     # --------------------------------------------------------
-    s_zero       = np.zeros(len(feature_cols))
-    baseline_out = loss_rwa_ratio_fn(s_zero)
+    baseline_out = engine.baseline_out
 
     baseline_stressed = baseline_out["stressed"].copy()
     save_baseline_exposure_metrics(baseline_stressed)
@@ -99,13 +92,13 @@ def main():
     # --------------------------------------------------------
     # Étape 5 : design point
     # --------------------------------------------------------
-    best, all_optima = solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn)
+    best, all_optima = solve_design_point(feature_cols, Sigma_inv, L, engine)
 
     design_point = pd.Series(best["s_star"], index=feature_cols)
     save_design_point(best["s_star"], feature_cols)
     save_exposure_stress_at_design_point(best["stressed"])
 
-    sector_diag = build_sector_diagnostics(best["stressed"])
+    sector_diag = build_sector_diagnostics(baseline_stressed, best["stressed"])
     save_sector_diagnostics(sector_diag)
 
     # --------------------------------------------------------
@@ -116,8 +109,7 @@ def main():
         feature_cols    = feature_cols,
         L               = L,
         Sigma_inv       = Sigma_inv,
-        capital         = capital,
-        loss_rwa_ratio_fn = loss_rwa_ratio_fn,
+        engine          = engine,
         eta_local       = ETA_LOCAL,
         phi_near        = PHI_NEAR,
         n               = POOL_SIZE,
@@ -142,13 +134,16 @@ def main():
         pool          = pool,
         shortlist     = shortlist,
         design_point  = design_point,
+        sector_diag   = sector_diag,
         eta_local     = ETA_LOCAL,
         phi_near      = PHI_NEAR,
     )
+    save_calibration_governance_note(sector_params)
 
     print("OK - pipeline RST terminé.")
     print("Sorties disponibles dans :", OUTPUTS)
     print(f"Baseline check : R(0) = {baseline_out['R']:.6f} vs R0 input = {float(capital['R0']):.6f}")
+    print(f"Slack de rupture au design point : {best['break_slack']:.6e}")
 
 
 if __name__ == "__main__":

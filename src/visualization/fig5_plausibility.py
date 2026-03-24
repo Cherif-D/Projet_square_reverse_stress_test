@@ -35,7 +35,7 @@ from scipy.stats import chi2, f as f_dist
 
 from src.config import G_COL
 from src.paths import OUTPUTS
-from src.visualization.helpers import load_viz_data
+from src.visualization.helpers import load_viz_context
 
 PLOTS = OUTPUTS / "plots"
 PLOTS.mkdir(exist_ok=True, parents=True)
@@ -85,7 +85,7 @@ def plot_fig5_plausibility(n_pts: int = 100, span: float = 4.5,
     Deux panneaux côte à côte montrant -log10(rareté) sur la même
     échelle de couleur, mettant en évidence l'effet queues épaisses.
     """
-    exposures, capital, sector_params, design_point, sigma, summary = load_viz_data()
+    engine, design_point, sigma, summary = load_viz_context()
 
     macro_drivers = design_point.drop(G_COL).abs().sort_values(ascending=False)
     x_driver = G_COL
