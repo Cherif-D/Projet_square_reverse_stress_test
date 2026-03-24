@@ -127,7 +127,7 @@ Reverse_stress_test/
 │   └── visualization/          ← Graphiques
 │       ├── helpers.py          ← Fonctions partagées (grille, ratio, distance)
 │       ├── fig1_geometry.py    ← Fig 1 papier : géométrie RST
-│       ├── fig2_near_optimal.py ← Fig 2 papier : ensemble N_epsilon
+│       ├── fig2_near_optimal.py ← Fig 2 papier : ensemble N_phi
 │       ├── fig3_roadmap.py     ← Fig 3 papier : roadmap implémentation
 │       ├── fig4_scenario_selection.py ← Fig 4 papier : sélection finie
 │       ├── fig5_plausibility.py ← Fig 5 papier : Gaussienne vs Student-t
@@ -303,6 +303,8 @@ Seuls les scénarios dans la **zone de rupture** suivante sont conservés :
 
 $$\mathcal{S}_{\mathrm{red}} = \lbrace s : R(s) \le \bar{R} \rbrace$$
 
+Avec la configuration courante, le générateur lance `POOL_SIZE = 4000` tirages dans chaque branche (`local_shell` et `near_projection`). Après filtrage de faisabilité, contrainte `g >= 0` et déduplication, le run de référence retient un **pool final de 3516 scénarios**.
+
 ---
 
 ### Étape 5 — Shortlist farthest-point
@@ -397,13 +399,13 @@ $$s^\star$$
 
 **Ensemble near-optimal**
 
-$$\mathcal{N}_{\varepsilon} = \mathcal{S}_{\mathrm{red}} \cap \lbrace s : d^2(s) \le d^2(s^\star) + \varepsilon \rbrace$$
+$$\mathcal{N}_{\varphi} = \lbrace s : d^2(s) \le d^2(s^\star) + \varphi \rbrace$$
 
 Cet ensemble regroupe les scénarios de rupture presque aussi plausibles que `s^*`.
 
 **Boule locale autour du design point**
 
-$$\mathcal{B}_{\rho}(s^\star) = \lbrace s : \lVert L^{-1}(s-s^\star) \rVert^2 \le \rho \rbrace$$
+$$\mathcal{B}_{\eta}(s^\star) = \lbrace s : \lVert L^{-1}(s-s^\star) \rVert^2 \le \eta \rbrace$$
 
 Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 
@@ -421,7 +423,7 @@ Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 | `design_point.csv` | Coordonnées de `s*` et métriques associées |
 | `exposure_stress_at_design_point.csv` | `PD_stress`, `LGD_stress`, `L_q` par emprunteur en `s*` |
 | `sector_diagnostics_at_design_point.csv` | Agrégats sectoriels (EAD, PD, LGD, `L_q`) en `s*` |
-| `candidate_pool.csv` | Pool de scénarios candidats `C_N` |
+| `candidate_pool.csv` | Pool final de scénarios candidats `C_N`, après filtrage et déduplication |
 | `scenario_shortlist.csv` | Shortlist finale `C_P` (8 scénarios) |
 
 ### Rapports (`outputs/reports/`)
@@ -449,11 +451,15 @@ Design point s* (z-scores) :
   shock_gdp    = -0.1653   ← baisse PIB
   shock_unrate = +0.1312   ← hausse chômage
   shock_vix    = +0.1258   ← hausse volatilité
+  shock_epu    = +0.1224   ← montée de l'incertitude
 
 d²(s*) = 0.076508          ← distance de Mahalanobis du design point
 p-value = 0.99999991       ← plausibilité élevée sous χ² à 8 degrés de liberté
 
+Optima faisables trouvés : 26
 Pool de candidats : 3516 scénarios
+Scénarios dans S_eta : 3513
+Scénarios dans N_phi : 3246
 Shortlist finale  :   8 scénarios
 ```
 
@@ -466,7 +472,7 @@ Tous dans `outputs/plots/` au format PNG 300 dpi.
 | Fichier | Description |
 |---------|-------------|
 | `fig1_geometry.png` | **Fig 1** — Zone de rupture `S_red`, frontière `R(s) = R_bar`, ellipses de Mahalanobis, `s*`, boule locale autour de `s*` |
-| `fig2_near_optimal.png` | **Fig 2** — Ensemble near-optimal `N_epsilon` hachuré, niveau `d^2(s*) + epsilon` |
+| `fig2_near_optimal.png` | **Fig 2** — Ensemble near-optimal `N_phi` hachuré, niveau `d^2(s*) + phi` |
 | `fig3_roadmap.png` | **Fig 3** — Roadmap d'implémentation en 4 étapes (flowchart) |
 | `fig4_scenario_selection.png` | **Fig 4** — Pool `C_N` → ancres géopolitiques `g_j` → shortlist farthest-point `C_P` |
 | `fig5_plausibility.png` | **Fig 5** — Heatmaps de `-log10(p-value)` : Gaussienne vs Student-t (`nu = 6`) |
@@ -489,7 +495,7 @@ Tous dans `src/config.py` :
 | `G_COL` | `"shock_GPRD"` | Nom de la colonne du choc géopolitique `g` |
 | `ETA_LOCAL` | `1.0` | Rayon `eta` de la boule locale autour de `s*` |
 | `PHI_NEAR` | `1.0` | Marge near-optimal `phi` : `d^2(s) <= d^2(s*) + phi` |
-| `POOL_SIZE` | `4000` | Nombre de candidats générés dans `C_N` |
+| `POOL_SIZE` | `4000` | Nombre de tirages par branche de génération avant filtrage et déduplication |
 | `SHORTLIST_SIZE` | `8` | Taille `P` de la shortlist finale `C_P` |
 
 ---
