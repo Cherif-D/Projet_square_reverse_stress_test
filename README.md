@@ -287,10 +287,10 @@ $$d^2(s) = s^\top \Sigma^{-1} s = \|y\|^2 = \|L^{-1}s\|^2$$
 
 Au-delà du design point unique, on génère un **pool de scénarios plausibles** à partir de deux ensembles :
 
-- **Boule locale** $\mathcal{B}_\eta(s^*)$ : $\|L^{-1}(s - s^*)\|^2 \leq \eta$ — scénarios proches de $s^*$ en espace blanchi
-- **Ensemble near-optimal** $\mathcal{N}_\varphi$ : $d^2(s) \leq d^2(s^*) + \varphi$ — scénarios presque aussi plausibles que $s^*$
+- **Boule locale** `B_eta(s*)` : scénarios proches de `s*` en espace blanchi, définis par `||L^-1 (s - s*)||^2 <= eta`
+- **Ensemble near-optimal** `N_phi` : scénarios presque aussi plausibles que `s*`, définis par `d^2(s) <= d^2(s*) + phi`
 
-Seuls les scénarios dans la **zone de rupture** $\mathcal{S}_{\text{red}} = \{s : R(s) \leq \bar{R}\}$ sont conservés.
+Seuls les scénarios dans la **zone de rupture** `S_red = { s : R(s) <= R_bar }` sont conservés.
 
 ---
 
@@ -324,20 +324,20 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 
 ## 6. Formules mathématiques clés
 
-| Symbole | Signification |
-|---------|--------------|
-| $s \in \mathbb{R}^d$ | Vecteur de scénario ($d = 8$ variables en z-scores) |
-| $g = s_1$ | Choc géopolitique (`shock_GPRD`) |
-| $\Sigma \in \mathbb{R}^{d \times d}$ | Matrice de covariance des chocs, estimée par Ledoit-Wolf |
-| $d^2(s) = s^\top \Sigma^{-1} s$ | Distance de Mahalanobis au carré — mesure de plausibilité |
-| $y = L^{-1}s$ | Espace blanchi ($L$ = facteur de Cholesky de $\Sigma$) |
-| $R(s) = \text{CET1}(s) / \text{RWA}(s)$ | Ratio de capital sous scénario $s$ |
-| $\bar{R} = 11\%$ | Seuil de rupture réglementaire |
-| $R_0 = 14\%$ | Ratio de capital à la baseline |
-| $q = 99.9\%$ | Quantile de queue (modèle Vasicek) |
-| $s^*$ | Design point — solution du RST |
-| $\mathcal{N}_\varepsilon = \mathcal{S}_{\text{red}} \cap \{d^2(s) \leq d^2(s^*) + \varepsilon\}$ | Ensemble near-optimal |
-| $\mathcal{B}_\rho(s^*) = \{\|L^{-1}(s - s^*)\|^2 \leq \rho\}$ | Boule locale autour de $s^*$ |
+> Note de lecture : certains viewers Markdown affichent mal le LaTeX inline dans les listes et les tableaux. Les notations ci-dessous sont donc données en écriture texte pour garantir un affichage correct partout.
+
+- `s in R^d` : vecteur de scénario (`d = 8` variables en z-scores)
+- `g = s_1` : choc géopolitique (`shock_GPRD`)
+- `Sigma in R^(dxd)` : matrice de covariance des chocs, estimée par Ledoit-Wolf
+- `d^2(s) = s^T Sigma^-1 s` : distance de Mahalanobis au carré, utilisée comme mesure de plausibilité
+- `y = L^-1 s` : espace blanchi (`L` = facteur de Cholesky de `Sigma`)
+- `R(s) = CET1(s) / RWA(s)` : ratio de capital sous scénario `s`
+- `R_bar = 11%` : seuil de rupture réglementaire
+- `R_0 = 14%` : ratio de capital à la baseline
+- `q = 99.9%` : quantile de queue dans le modèle Vasicek
+- `s*` : design point, c'est-à-dire la solution du RST
+- `N_epsilon = S_red ∩ { d^2(s) <= d^2(s*) + epsilon }` : ensemble near-optimal
+- `B_rho(s*) = { ||L^-1 (s - s*)||^2 <= rho }` : boule locale autour de `s*`
 
 ---
 
@@ -347,14 +347,14 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 
 | Fichier | Contenu |
 |---------|---------|
-| `Sigma.csv` | Matrice de covariance $\Sigma$ (8×8) |
+| `Sigma.csv` | Matrice de covariance `Sigma` (8×8) |
 | `scenario_standardized.csv` | Séries macro en z-scores |
 | `baseline_exposure_metrics.csv` | Métriques de crédit à la baseline par emprunteur |
-| `design_point.csv` | Coordonnées de $s^*$ et métriques associées |
-| `exposure_stress_at_design_point.csv` | $PD_{\text{stress}}$, $LGD_{\text{stress}}$, $L_q$ par emprunteur en $s^*$ |
-| `sector_diagnostics_at_design_point.csv` | Agrégats sectoriels (EAD, PD, LGD, $L_q$) en $s^*$ |
-| `candidate_pool.csv` | Pool de scénarios candidats $\mathcal{C}_N$ |
-| `scenario_shortlist.csv` | Shortlist finale $\mathcal{C}_P$ (8 scénarios) |
+| `design_point.csv` | Coordonnées de `s*` et métriques associées |
+| `exposure_stress_at_design_point.csv` | `PD_stress`, `LGD_stress`, `L_q` par emprunteur en `s*` |
+| `sector_diagnostics_at_design_point.csv` | Agrégats sectoriels (EAD, PD, LGD, `L_q`) en `s*` |
+| `candidate_pool.csv` | Pool de scénarios candidats `C_N` |
+| `scenario_shortlist.csv` | Shortlist finale `C_P` (8 scénarios) |
 
 ### Rapports (`outputs/reports/`)
 
@@ -362,7 +362,7 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 |---------|---------|
 | `summary.json` | Tous les indicateurs clés (baseline, design point, ensembles) |
 | `summary.md` | Version lisible du résumé |
-| `sigma_report.json` | Détails de l'estimation de $\Sigma$ |
+| `sigma_report.json` | Détails de l'estimation de `Sigma` |
 | `calibration_backtesting_note.md` | Limites, calibration minimale et garde-fous de gouvernance |
 | `tutor_data_context.json` | Contexte complet des données pour auditabilité |
 
