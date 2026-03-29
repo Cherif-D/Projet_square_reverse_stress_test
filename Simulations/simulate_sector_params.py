@@ -41,36 +41,54 @@ from __future__ import annotations
 #
 # (A) SENSIBILITE GEOPOLITIQUE (delta_g, eta_g) :
 #
-#     Source principale : ECB Working Paper No. 2897,
-#     Lo Duca, Moccero, Parlapiano (2025) :
-#     "Geopolitical risk and the economy: a sectoral perspective."
+#     Source primaire verifiee : ECB Financial Stability Review,
+#     special feature (May 2024) :
+#     "Turbulent times: geopolitical risk and its impact on euro area
+#     financial stability."
+#     URL : https://www.ecb.europa.eu/press/financial-stability-publications/fsr/special/html/ecb.fsrart202405_01~4e4e30f01f.en.html
 #
-#     Ce papier établit empiriquement que :
-#     - Energy, Transport et Manufacturing sont les secteurs les plus
-#       sensibles au risque géopolitique (commerce mondial, supply-chain,
-#       sanctions, prix commodities).
-#     - Utilities est le plus résilient (domestique, régulé).
-#     - Consumer et Real Estate ont une sensibilité intermédiaire
-#       (confiance, conditions de crédit).
+#     Cette source etablit surtout que :
+#     - transport, aircraft et certaines branches du manufacturing
+#       (ex. steel) sont parmi les plus vulnerables ;
+#     - technology et la majeure partie du manufacturing ont une
+#       exposition intermediaire ;
+#     - les activites les moins exposees incluent mining et consumer goods ;
+#     - fossil fuels, natural gas et defense peuvent meme beneficier
+#       d'un choc geopolitique.
 #
-#     Le papier de Hurlin et al. (Section 2.3) cite Flament et al. (2026)
-#     qui incorporent le risque géopolitique dans des stress tests
-#     prospectifs via un cadre VAR–Merton, confirmant cette hiérarchie.
+#     IMPORTANT :
+#     - ECB Working Paper No. 2897 existe bien, mais son titre reel est
+#       "The impact of macroeconomic and monetary policy shocks on credit
+#       risk in the euro area corporate sector" ; ce n'est pas la source
+#       sectorielle geopolitique decrite ici.
+#     - Le passage de ces categories ECB a nos 8 secteurs internes
+#       (Energy, Utilities, RealEstate, etc.) reste donc une traduction
+#       de modelisation, pas une classification officielle publiee telle
+#       quelle.
+#     - En particulier, Utilities et RealEstate ne sont pas classes
+#       explicitement par cette source ECB.
+#
+#     Le papier de Hurlin et al. (2026) formalise une mise en oeuvre
+#     possible au niveau exposition/secteur, mais ne fournit pas une
+#     grille numerique empirique prete a l'emploi pour delta_g et eta_g.
 #
 # (B) CONFIRMATION EBA 2025 STRESS TEST (résultats août 2025) :
 #
 #     Source : EBA, "2025 EU-wide Stress Test – Results", août 2025.
-#     URL : eba.europa.eu/.../2025%20EU-wide%20stress%20test%20-%20Results.pdf
+#     URL : https://www.eba.europa.eu/sites/default/files/2025-08/0178b9c5-2f0d-42ee-8226-6fa0a87c0d6c/2025%20EU-wide%20stress%20test%20-%20Results.pdf
 #
 #     Éléments pertinents :
 #     - Le scénario adverse 2025 suppose une aggravation des tensions
-#       géopolitiques avec un choc GDP cumulé de -6.3% sur 3 ans.
+#       géopolitiques ; pour l'UE, le PIB reel cumule une baisse de -6.3%
+#       entre le point de depart 2024 et la fin 2027.
 #     - L'EBA note (Figure 29) que "banks which make a greater use of
 #       models for PD and LGD parameters tend to project higher loss
 #       rates for the vulnerable sectors."
 #     - Les "secteurs vulnérables" sont ceux avec les plus grandes
-#       déviations de GVA cumulée sous adverse = industrie, énergie, commerce.
-#     - Capital depletion moyenne = 370 bps sous adverse.
+#       deviations negatives de croissance cumulee sous adverse :
+#       manufacturing, transportation and storage, mining and quarrying,
+#       agriculture/forestry/fishing, wholesale and retail trade.
+#     - Capital depletion moyenne = 370 bps sous adverse (communique EBA).
 #
 # (C) SCENARIO ESRB 2025 :
 #
@@ -102,14 +120,12 @@ from __future__ import annotations
 #   régression sur panel (logit PD ~ macro drivers) avec données internes banque
 #   (cf. Section 6.2 du papier, étape 2 de la feuille de route).
 #
-# MODIFICATIONS PAR RAPPORT A LA VERSION INITIALE
-# ===============================================
-# 1) Nous gardons exactement les commentaires détaillés de la version initiale.
-# 2) Nous ajoutons des colonnes de traçabilité dans le CSV final :
-#       param_origin, calibration_status, note
-#    pour rappeler explicitement que les coefficients restent stylisés.
-# 3) Les valeurs numériques du cœur des coefficients ne changent pas ;
-#    nous ajoutons surtout de la transparence documentaire.
+# CONVENTIONS DE DOCUMENTATION
+# ============================
+# 1) La hiérarchie sectorielle est appuyée sur les sources A-D ci-dessus.
+# 2) Les colonnes param_origin, calibration_status et note servent à tracer
+#    explicitement le caractère stylisé des paramètres.
+# 3) Les valeurs numériques restent des calibrations de modélisation.
 # ============================================================
 
 from pathlib import Path
@@ -156,7 +172,7 @@ for sector in SECTORS:
     row = {"sector": sector}
 
     # ========================================================
-    # TRACEABILITE AJOUTEE DANS LA VERSION FINALE
+    # TRACEABILITE DES PARAMETRES
     # ========================================================
     # Nous ajoutons ces colonnes pour documenter explicitement
     # le caractère stylisé des paramètres dans le CSV final.
@@ -182,32 +198,35 @@ for sector in SECTORS:
     #   transfrontalière, des pertes de valeur des collatéraux ou des
     #   restrictions sur la vente d'actifs gagés." (Section 4.1 du papier)
     #
-    # Hiérarchie sectorielle (source : ECB WP 2897, Lo Duca et al. 2025) :
+    # Hierarchie sectorielle ci-dessous :
+    # mapping stylise vers nos 8 secteurs internes, ancre partiellement
+    # sur l'ECB FSR (May 2024) et complete par jugement economique.
     #
     # TIER 1 (delta_g=0.65, eta_g=0.10) : Energy, Transport, Manufacturing
-    #   Les plus exposés au géopolitique. Le papier ECB WP 2897 montre que
-    #   ces secteurs subissent les impacts les plus forts des chocs
-    #   géopolitiques via le commerce mondial et les chaînes d'approvisionnement.
-    #   Le stress test EBA 2025 confirme que les "secteurs vulnérables" au
-    #   sens de la GVA cumulée sous adverse sont liés à l'industrie et
-    #   l'énergie. Le delta_g=0.65 signifie qu'un choc géopolitique de
-    #   1 écart-type augmente le log-odds de défaut de 0.65 pour ces secteurs.
+    #   Transport et certaines branches industrielles sont clairement
+    #   parmi les plus exposees dans l'ECB FSR. Etendre ce tier a Energy
+    #   est un choix de modelisation motive par les canaux commodities /
+    #   supply-chain et par le contexte EBA 2025, plutot qu'une
+    #   classification ECB publiee sous ce libelle exact.
+    #   Le delta_g=0.65 signifie qu'un choc geopolitique de 1 ecart-type
+    #   augmente le log-odds de defaut de 0.65 pour ces secteurs.
     #
     # TIER 2 (delta_g=0.40, eta_g=0.08) : Consumer, RealEstate
-    #   Sensibilité intermédiaire. Le géopolitique affecte ces secteurs
-    #   indirectement via la confiance des consommateurs et les conditions
-    #   de crédit (Nguyen and Thuy, 2023 ; cité dans Section 2.3 du papier).
+    #   Sensibilite intermediaire retenue par jugement economique.
+    #   RealEstate n'est pas classe explicitement dans la source ECB
+    #   sectorielle ci-dessus ; Consumer est ici rapproche des secteurs
+    #   sensibles via confiance et conditions de credit.
     #
     # TIER 3 (delta_g=0.25-0.28, eta_g=0.05) : Defense, Tech
-    #   Defense : pas neutre au géopolitique, mais contrats étatiques
-    #   = contreparties souveraines. On reste modéré faute d'estimation
-    #   publique robuste dans le format de nos variables.
-    #   Tech : export controls et tensions Chine/US, mais grandes techs
-    #   EU relativement isolées. ECB WP 2897 montre une sensibilité modérée.
+    #   Defense : coefficient conserve modere dans le modele, mais l'ECB
+    #   FSR note plutot que ce secteur peut beneficier d'un stress
+    #   geopolitique. C'est donc une hypothese stylisee prudente.
+    #   Tech : une exposition intermediaire est coherent avec l'ECB FSR.
     #
     # TIER 4 (delta_g=0.18, eta_g=0.04) : Utilities
-    #   Le plus résilient. Secteur régulé, domestique, cash-flows contractuels.
-    #   ECB WP 2897 confirme que utilities est le secteur le moins impacté.
+    #   Le plus resilient par choix de modelisation
+    #   (secteur regule, domestique, cash-flows contractuels).
+    #   Ce n'est pas une classification explicite de la source ECB citee.
     #
     # ========================================================
     if sector in ["Energy", "Transport", "Manufacturing"]:
@@ -243,10 +262,13 @@ for sector in SECTORS:
     # - epu ↑ → incertitude politique → PD ↑
     #
     # Hiérarchie sectorielle pour chaque variable :
-    # Les secteurs cycliques (Consumer, Manufacturing, Transport,
-    # RealEstate) sont les plus sensibles au GDP et au chômage.
-    # Cela est cohérent avec le stress test EBA 2025 où ces secteurs
-    # montrent les loss rates les plus élevées sous adverse.
+    # Dans cette calibration, les secteurs cycliques (Consumer,
+    # Manufacturing, Transport, RealEstate) reçoivent les coefficients
+    # GDP/chômage les plus forts.
+    # L'EBA 2025 documente plus clairement la vulnérabilité de
+    # manufacturing, transportation/storage et de certains secteurs de
+    # commerce ; l'extension à Consumer et RealEstate relève ici d'un
+    # jugement de modélisation.
     #
     # ========================================================
 
@@ -346,9 +368,10 @@ for sector in SECTORS:
     # saisies d'actifs, des perturbations dans l'exécution transfrontalière,
     # des pertes de valeur des collatéraux".
     #
-    # En pratique, la LGD réagit souvent MOINS VITE que la PD aux
-    # chocs macro. Les coefficients c_shock_* sont donc typiquement
-    # 3x à 5x plus faibles que les b_shock_* correspondants.
+    # En pratique, la LGD est souvent calibrée comme moins réactive que la PD
+    # aux chocs macro dans les exercices stylisés de stress test.
+    # Ici, les coefficients c_shock_* sont donc retenus plus faibles que les
+    # b_shock_* correspondants par convention de modélisation.
     #
     # ========================================================
 
@@ -416,8 +439,8 @@ print(params_df)
 print("\n" + "="*60)
 print("SOURCES DOCUMENTEES POUR LA HIERARCHIE SECTORIELLE :")
 print("="*60)
-print("  [1] ECB WP 2897 (Lo Duca, Moccero, Parlapiano, 2025) :")
-print("      → hiérarchie de sensibilité géopolitique par secteur")
+print("  [1] ECB FSR special feature (May 2024) :")
+print("      → exposition sectorielle au risque geopolitique (transport / manufacturing / tech, etc.)")
 print("  [2] EBA 2025 EU-wide Stress Test Results (août 2025) :")
 print("      → secteurs vulnérables, loss rates, capital depletion 370bps")
 print("  [3] ESRB macro-financial scenario 2025 (janvier 2025) :")
@@ -428,4 +451,4 @@ print("  [5] Hurlin, Lajaunie, Pull (2026) :")
 print("      → eq. (7), (8), (9), (10) ; Section 4.1 interprétation des coefficients")
 print("  [6] Nguyen and Thuy (2023), cité Section 2.3 du papier :")
 print("      → géopolitique augmente coûts d'emprunt et conditions non-prix")
-print("\nNOTE AJOUTEE : le CSV contient aussi param_origin, calibration_status et note pour tracer explicitement le caractère stylisé des paramètres.")
+print("\nNOTE : le CSV contient aussi param_origin, calibration_status et note pour tracer explicitement le caractère stylisé des paramètres.")

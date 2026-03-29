@@ -77,7 +77,7 @@ Reverse_stress_test/
 ├── Simulations/                ← Étape 0 : génération des inputs
 │   ├── simulate_exposures.py   ← Génère inputs/exposures.csv (500 emprunteurs)
 │   ├── simulate_capital.py     ← Génère inputs/capital.csv (connecté au portefeuille)
-│   └── simulate_sector_params.py ← Génère inputs/sector_params.csv (coefficients stylisés)
+│   └── simulate_sector_params.py ← Génère inputs/sector_params.csv (coefficients sectoriels stylisés)
 │
 ├── inputs/                     ← Générés automatiquement par Simulations/
 │   ├── exposures.csv           ← Portefeuille de crédit (1 ligne = 1 emprunteur)
@@ -85,8 +85,9 @@ Reverse_stress_test/
 │   └── sector_params.csv       ← Sensibilités sectorielles aux chocs
 │
 ├── data/
-│   └── raw/
-│       └── macro.csv           ← Séries macro historiques (GPRD, PIB, VIX...)
+│   ├── interim/
+│   │   └── macro.csv           ← Table macro harmonisée utilisée par le pipeline
+│   └── raw/                    ← Sources macro brutes et fichiers d'origine
 │
 ├── outputs/                    ← Tout ce que le projet génère
 │   ├── plots/                  ← 9 graphiques PNG (300 dpi)
@@ -153,7 +154,7 @@ Reverse_stress_test/
 
 ### `inputs/exposures.csv` — Portefeuille de crédit
 
-Généré par `simulate_exposures.py` — 500 emprunteurs répartis sur 8 secteurs, avec des paramètres calibrés sur les formules Bâle IRB (CRE31). Colonnes principales :
+Généré par `simulate_exposures.py` — 500 emprunteurs répartis sur 8 secteurs, avec des paramètres initiaux stylisés et cohérents avec la logique Bâle IRB / Vasicek. Colonnes principales :
 
 | Colonne | Description |
 |---------|-------------|
@@ -182,7 +183,7 @@ Généré par `simulate_capital.py` — les valeurs de `CET1_0` et `RWA_0` sont 
 
 ### `inputs/sector_params.csv` — Sensibilités sectorielles
 
-Généré par `simulate_sector_params.py` — coefficients **stylisés** documentés (sources ECB, EBA, ESRB). Chaque secteur a ses propres coefficients de transmission géopolitique :
+Généré par `simulate_sector_params.py` — coefficients **stylisés** de transmission sectorielle, motivés économiquement et utilisés comme hypothèses de modélisation. Chaque secteur a ses propres coefficients de transmission géopolitique :
 
 | Colonne | Description |
 |---------|-------------|
@@ -191,10 +192,15 @@ Généré par `simulate_sector_params.py` — coefficients **stylisés** documen
 | `b_shock_*` | Coefficients de transmission des chocs macro vers `PD` |
 | `c_shock_*` | Coefficients de transmission des chocs macro vers `LGD` |
 
-### `data/raw/macro.csv` — Séries macro historiques
+### `data/interim/macro.csv` — Table macro harmonisée
 
-Séries temporelles trimestrielles des 8 variables macroéconomiques :
+Table trimestrielle harmonisée utilisée directement par le pipeline pour construire les chocs standardisés.
+Elle contient les 8 variables macroéconomiques :
 `GPRD`, `gdp`, `vix`, `sp500`, `wti`, `t10Y2Y`, `unrate`, `epu`
+
+### `data/raw/` — Sources brutes
+
+Répertoire des séries d'origine et fichiers sources utilisés en amont pour constituer la table harmonisée `data/interim/macro.csv`.
 
 ---
 
@@ -208,11 +214,11 @@ Ces trois scripts génèrent les données d'entrée du modèle **dans un ordre p
 
 | Ordre | Script | Sortie | Contenu |
 |-------|--------|--------|---------|
-| 1 | `simulate_exposures.py` | `inputs/exposures.csv` | 500 emprunteurs, 8 secteurs, paramètres calibrés Bâle IRB |
+| 1 | `simulate_exposures.py` | `inputs/exposures.csv` | 500 emprunteurs, 8 secteurs, paramètres initiaux stylisés cohérents avec Bâle IRB |
 | 2 | `simulate_capital.py` | `inputs/capital.csv` | `RWA_0` dérivé du portefeuille, `R0 = 14%`, `R_omega = 11%` |
 | 3 | `simulate_sector_params.py` | `inputs/sector_params.csv` | Coefficients `delta_g`, `eta_g`, `b_j`, `c_j` par secteur |
 
-Les paramètres sont **stylisés mais économiquement fondés** (hiérarchie sectorielle documentée : ECB WP 2897, EBA Stress Test 2025, ESRB 2025).
+Les paramètres sont **stylisés mais économiquement motivés**. Ils doivent être lus comme des hypothèses de modélisation et des proxys sectoriels, et non comme une calibration empirique complète banque par banque.
 
 ---
 
@@ -237,17 +243,23 @@ Résultat : vecteur de scénario `s` de dimension 8 et matrice `Sigma` de taille
 
 Sous un scénario `s = (g, x)`, les paramètres de crédit de chaque emprunteur `i` sont modifiés.
 
-**PD stressée** (équation 7 du papier) :
+**PD stressée** (équation 7 du papier, implémentée en espace logit) :
 
-$$PD_{\text{stress}}(i) = PD_0(i) \cdot \sigma\bigl(\delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\bigr)$$
+$$\mathrm{logit}\!\bigl(PD_{\text{stress}}(i)\bigr) = \mathrm{logit}\!\bigl(PD_0(i)\bigr) + \delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j$$
 
-où `sigma(.)` est la fonction sigmoïde permettant de rester dans `(0, 1)`.
+soit, après re-projection logistique,
 
-**LGD stressée** (équation 10 du papier) :
+$$PD_{\text{stress}}(i) = \sigma\!\left(\mathrm{logit}\!\bigl(PD_0(i)\bigr) + \delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j\right)$$
 
-$$LGD_{\text{stress}}(i) = \phi\bigl(LGD_0(i),\; \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j\bigr)$$
+où `sigma(.)` est la sigmoïde logistique, ce qui garantit `PD_stress ∈ (0,1)` tout en ancrant exactement la baseline sur `PD0`.
 
-où `phi(.)` est une transformation lisse qui préserve l'intervalle `(0, 1)`.
+**LGD stressée** (équation 10 du papier, implémentée en espace latent) :
+
+$$z^{LGD}_i(s) = \phi^{-1}\!\bigl(LGD_0(i)\bigr) + \eta_g(i) \cdot g + \sum_j c_j(i) \cdot x_j$$
+
+$$LGD_{\text{stress}}(i) = \phi\!\bigl(z^{LGD}_i(s)\bigr)$$
+
+où $\phi(\cdot)$ est une transformation lisse bornée dans $(0,1)$. Cette écriture permet de garantir $LGD_{\text{stress}}(0) = LGD_0$ exactement.
 
 **Perte de queue par emprunteur** via le **modèle Vasicek / ASRF** au quantile `q = 99.9%` :
 
@@ -255,11 +267,15 @@ $$L_q(i,s) = EAD_i \cdot LGD_{\text{stress}}(i) \cdot \Phi\!\biggl(\frac{\Phi^{-
 
 **Ratio de capital** sous scénario `s` :
 
-$$R(s) = \frac{CET1(s)}{RWA(s)} \qquad \text{avec} \quad RWA(s) = \sum_i \frac{\alpha_i \cdot K_i(s)}{0.08}$$
-
-La **correction baseline** garantit `R(0) = R_0` exactement :
-
 $$\Delta L_q(s) = L_q(s) - L_q(0)$$
+
+$$CET1(s) = CET1_0 - \Delta L_q(s) + \Delta_{\text{non-credit}}$$
+
+$$RWA(s) = RWA_0 + \sum_i \alpha_i \cdot \bigl(PD_{\text{stress}}(i) - PD_0(i)\bigr)$$
+
+$$R(s) = \frac{CET1(s)}{RWA(s)}$$
+
+La **correction baseline** garantit `R(0) = R_0` exactement en travaillant sur `\Delta L_q(s)` plutôt que sur la perte absolue non corrigée.
 
 ---
 
@@ -331,7 +347,7 @@ Sauvegarde de tous les résultats : design point, diagnostics sectoriels, pool, 
 
 **Fichier :** `src/visualization/`
 
-9 graphiques générés automatiquement dans `outputs/plots/`.
+Le run standard documenté ici génère 9 graphiques automatiquement dans `outputs/plots/`.
 
 ---
 
@@ -418,15 +434,15 @@ Elle sert à explorer le voisinage de `s^*` en espace blanchi.
 | Fichier | Contenu |
 |---------|---------|
 | `Sigma.csv` | Matrice de covariance `Sigma` (8×8) |
-| `scenario_standardized.csv` | Séries macro en z-scores |
+| `scenario_standardized.csv` | Historique des chocs macro standardisés et recentrés |
 | `baseline_exposure_metrics.csv` | Métriques de crédit à la baseline par emprunteur |
-| `design_point.csv` | Coordonnées de `s*` et métriques associées |
+| `design_point.csv` | Coordonnées du design point `s*` |
 | `exposure_stress_at_design_point.csv` | `PD_stress`, `LGD_stress`, `L_q` par emprunteur en `s*` |
 | `sector_diagnostics_at_design_point.csv` | Agrégats sectoriels (EAD, PD, LGD, `L_q`) en `s*` |
 | `candidate_pool.csv` | Pool final de scénarios candidats `C_N`, après filtrage et déduplication |
 | `scenario_shortlist.csv` | Shortlist finale `C_P` (8 scénarios) |
 
-### Rapports (`outputs/reports/`)
+### Rapports principaux (`outputs/reports/`)
 
 | Fichier | Contenu |
 |---------|---------|
@@ -467,7 +483,7 @@ Shortlist finale  :   8 scénarios
 
 ## 8. Graphiques générés
 
-Tous dans `outputs/plots/` au format PNG 300 dpi.
+Pour le run standard documenté ici, les graphiques finaux sont tous dans `outputs/plots/` au format PNG 300 dpi.
 
 | Fichier | Description |
 |---------|-------------|
@@ -515,8 +531,8 @@ Ce script exécute **4 étapes dans l'ordre** :
 |-------|----------|--------------------|
 | **0** | `run_simulations()` | `inputs/exposures.csv`, `capital.csv`, `sector_params.csv` |
 | **1** | `run_pipeline()` | Tables CSV, rapports JSON/Markdown, design point `s*` |
-| **2** | `run_legacy_visualizations()` | `frontier_plot.png` (script original) |
-| **3** | `run_src_visualizations()` | 8 figures du papier (`fig1` à `fig5` + profil + secteurs) |
+| **2** | `run_legacy_visualizations()` | `frontier_plot.png` + versions legacy du profil et de l'impact sectoriel |
+| **3** | `run_src_visualizations()` | 8 figures `src/visualization/` (`fig1` à `fig5` + profil + secteurs), qui constituent les sorties finales standard |
 
 ### Lancement du pipeline seul (sans regénérer les inputs)
 

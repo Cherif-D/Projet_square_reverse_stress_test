@@ -12,8 +12,10 @@ from __future__ import annotations
 # LIEN AVEC LE PAPIER (Hurlin, Lajaunie, Pull, 7 janvier 2026)
 # -------------------------------------------------------------
 # - CET1_0, RWA_0 → Section 3.1, eq. (2) : R0 = CET1_0 / RWA_0
-# - R_omega       → eq. (4) : R* = R0*(1-Delta), Delta=0.03, soit 300 bps
-#                   Conforme à l'annonce BCE du 12 décembre 2025 (ECB, 2025b) :
+# - R_omega       → eq. (4) : seuil de rupture R*
+#                   Ici, on l'implémente comme une déplétion ABSOLUE de 300 bps
+#                   sur le ratio CET1 initial, conformément à l'annonce BCE du
+#                   12 décembre 2025 (ECB, 2025b) :
 #                   "identify the most relevant geopolitical risk events that
 #                   could lead to at least a 300-basis point depletion in
 #                   [their] Common Equity Tier 1 (CET1) capital."
@@ -32,26 +34,21 @@ from __future__ import annotations
 #
 # CONTEXTE PRUDENTIEL
 # -------------------
-# - R0 = 14% : cohérent avec le ratio CET1 moyen des banques SSM à fin 2024
-#   (~15.9%, source : EBA, "2025 EU-wide Stress Test Results", août 2025,
-#   Section "Starting point", et ECB, "2025 stress test of euro area banks",
-#   Chart 1). On prend 14% pour représenter une banque individuelle
-#   légèrement en-dessous de la moyenne du système.
+# - R0 = 14% : choix stylisé mais cohérent avec des ratios CET1 agreges
+#   d'environ 15.7%-15.9% dans les publications officielles EBA/ECB de
+#   2024-2025. On prend 14% pour représenter une banque individuelle
+#   legerement en-dessous de la moyenne du systeme.
 # - R_omega = 11% : R0 - 300 bps = 14% - 3% = 11%.
 #   La condition de rupture est R(s) <= R_omega (eq. 23 du papier).
 # - CET1 capital = composante de plus haute qualité du capital réglementaire,
 #   composée principalement de fonds propres ordinaires et de bénéfices mis
 #   en réserve (note 4 du papier).
 #
-# MODIFICATIONS PAR RAPPORT A LA VERSION INITIALE
-# ===============================================
-# 1) Nous conservons exactement les commentaires détaillés de la version
-#    initiale.
-# 2) Nous n'estimons plus RW0_proxy localement à partir de PD/LGD/M dans ce
-#    script : nous lisons désormais RW0_exact_proxy déjà construit dans
-#    simulate_exposures.py après conversion correcte en RWA (facteur 12.5).
-# 3) Cela évite d'avoir deux définitions concurrentes de RW0 et garantit que
-#    capital.csv est parfaitement cohérent avec exposures.csv.
+# CONVENTIONS DE CONSTRUCTION
+# ===========================
+# 1) RWA_0 est reconstruit à partir du portefeuille simulé.
+# 2) RW0_exact_proxy est lu directement depuis simulate_exposures.py.
+# 3) Cela garantit une cohérence directe entre exposures.csv et capital.csv.
 # ============================================================
 
 from pathlib import Path
@@ -71,8 +68,8 @@ INPUTS.mkdir(parents=True, exist_ok=True)
 EXPOSURES_PATH = INPUTS / "exposures.csv"
 
 # ── R0 = 14% ──
-# Source contextuelle : EBA 2025 stress test starting point = 15.9% (agrégé SSM).
-# On choisit 14% pour une banque individuelle légèrement en-dessous.
+# Source contextuelle : ratios CET1 agreges EBA/ECB autour de 15.7%-15.9%.
+# On choisit 14% pour une banque individuelle legerement en-dessous.
 R0_TARGET = 0.14
 
 # ── Déplétion 300 bps ──
@@ -123,9 +120,9 @@ if missing:
 # ============================================================
 # Eq. (20) du papier : RWA(g,x) = sum_i EAD_i * RW_i(g,x).
 # Au baseline (s=0) : RWA_0 = sum_i EAD_i * RW0_i.
-# On utilise désormais directement RW0_exact_proxy produit dans
+# On utilise directement RW0_exact_proxy produit dans
 # simulate_exposures.py.
-# AJOUT : comme RW0_exact_proxy a déjà été converti en densité RWA,
+# Comme RW0_exact_proxy a déjà été converti en densité RWA,
 # on évite ici toute re-définition locale du proxy.
 # ============================================================
 
@@ -194,7 +191,7 @@ print("\nDiagnostic cohérence portefeuille/capital :")
 print(f"  RWA_0 dérivé du portefeuille  : {RWA_0:.6f}  [eq. (20) baseline]")
 print(f"  CET1_0 déduit de R0 cible     : {CET1_0:.6f}  [eq. (2) : R0*RWA_0]")
 print(f"  Lq(0) absolu (diagnostic)     : {LQ0_ABS:.6f}  [eq. (16) en s=0]")
-print(f"  R0 (ratio initial)            : {R0_TARGET:.4f}  [contexte EBA ~15.9%]")
+print(f"  R0 (ratio initial)            : {R0_TARGET:.4f}  [contexte EBA/ECB ~15.7%-15.9%]")
 print(f"  R_omega (seuil de rupture)    : {R_OMEGA:.4f}  [ECB 2025b, -300bps]")
 print(f"  q (quantile IRB)              : {Q}      [BCBS CRE31, Gordy 2003]")
 print(f"  delta_non_credit              : {DELTA_NON_CREDIT}        [eq. (17), crédit pur]")

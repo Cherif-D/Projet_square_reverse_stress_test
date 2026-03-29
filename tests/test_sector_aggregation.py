@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# Ici, nous vérifions que notre agrégation sectorielle reconstruit bien
+# un tableau de diagnostic cohérent avec les pertes calculées exposition
+# par exposition.
+
 import unittest
 
 import pandas as pd
@@ -9,6 +13,8 @@ from src.portfolio.sector_aggregation import build_sector_diagnostics
 
 class SectorAggregationTests(unittest.TestCase):
     def test_sector_table_reconciles_to_total_delta_lq(self) -> None:
+        # Nous construisons un petit portefeuille jouet pour vérifier que
+        # l'agrégation par secteur conserve bien le total de variation de perte.
         baseline = pd.DataFrame(
             {
                 "id": [1, 2, 3],
@@ -33,8 +39,14 @@ class SectorAggregationTests(unittest.TestCase):
             }
         )
 
+        # Nous lançons ensuite la fonction de diagnostic sectoriel comme
+        # nous le faisons dans le pipeline principal.
         diag = build_sector_diagnostics(baseline, stressed)
 
+        # Nous contrôlons deux choses :
+        # 1) les colonnes sectorielles attendues sont bien produites ;
+        # 2) la somme des contributions sectorielles réconcilie exactement
+        #    la variation totale de perte en queue.
         self.assertIn("PD_sector_baseline", diag.columns)
         self.assertIn("PD_sector_stress", diag.columns)
         self.assertIn("Delta_PD_sector_bp", diag.columns)

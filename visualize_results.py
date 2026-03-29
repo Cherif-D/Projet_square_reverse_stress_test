@@ -10,12 +10,26 @@ TABLES = OUTPUTS / "tables"
 PLOTS = OUTPUTS / "plots"
 PLOTS.mkdir(exist_ok=True)
 
+def load_design_point_series() -> pd.Series:
+    """Charge design_point.csv de façon robuste, avec ou sans ligne d'en-tête."""
+    path = TABLES / "design_point.csv"
+
+    df = pd.read_csv(path, index_col=0)
+    if df.empty or df.shape[1] == 0:
+        df = pd.read_csv(path, header=None, index_col=0)
+
+    series = df.iloc[:, 0]
+    series = pd.to_numeric(series, errors="coerce")
+    series = series[series.notna()]
+    series.index = series.index.map(str)
+    return series
+
 # 1. Graphique du Scénario (Bar Chart des Chocs)
 def plot_scenario():
     try:
         # Charger le Design Point (chocs standardisés en z-score)
-        df = pd.read_csv(TABLES / "design_point.csv", header=None, index_col=0)
-        df.columns = ["Choc (Ecart-type)"]
+        series = load_design_point_series()
+        df = series.to_frame(name="Choc (Ecart-type)")
         
         # Trier par amplitude
         df["abs_val"] = df["Choc (Ecart-type)"].abs()
@@ -53,9 +67,17 @@ def plot_sector_impact():
         
         # On trie par perte totale
         df = df.sort_values("LossQ_sector", ascending=False)
+        df["sector"] = df["sector"].astype(str)
         
         plt.figure(figsize=(10, 6))
-        sns.barplot(data=df, x="LossQ_sector", y="sector", palette="viridis")
+        sns.barplot(
+            data=df,
+            x="LossQ_sector",
+            y="sector",
+            hue="sector",
+            palette="viridis",
+            legend=False,
+        )
         
         plt.title("Répartition des Pertes par Secteur (Design Point)")
         plt.xlabel("Montant de la Perte de Queue (Lq)")

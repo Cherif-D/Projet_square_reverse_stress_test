@@ -11,7 +11,7 @@ from __future__ import annotations
 # Credit Portfolios" (Hurlin, Lajaunie, Pull, 7 janvier 2026).
 #
 # Colonnes produites :
-#   id, sector, EAD, PD0, LGD0, rho, M, alpha_rwa, RW0_exact_proxy
+#   id, sector, EAD, PD0, LGD0, rho, M, alpha_rwa, K0_proxy, RW0_exact_proxy
 #
 # LIEN AVEC LE PAPIER
 # -------------------
@@ -23,8 +23,9 @@ from __future__ import annotations
 #                     de poids de risque h(PD,LGD,M)
 # - alpha_rwa_i    → eq. (21) : approximation linéaire des RWA
 #                     RWA(g,x) = RWA0 + sum_i alpha_i*(PD_i(g,x) - PD0_i)
-# - RW0_exact_proxy→ eq. (19) : proxy du poids de risque IRB baseline
-#                     h(PD,LGD,M) = LGD*[Phi((Phi^{-1}(PD)+sqrt(rho)*Phi^{-1}(q))/sqrt(1-rho)) - PD]*gamma(M)
+# - RW0_exact_proxy→ proxy de densité RWA baseline obtenu à partir de
+#                     K0_proxy = LGD*[Phi((Phi^{-1}(PD)+sqrt(rho)*Phi^{-1}(q))/sqrt(1-rho)) - PD]*gamma(M)
+#                     puis RW0_exact_proxy = 12.5 * K0_proxy
 #
 # LOGIQUE METHODOLOGIQUE
 # ----------------------
@@ -37,72 +38,60 @@ from __future__ import annotations
 # SOURCES DES PARAMETRES pd_mean / lgd_mean
 # ==========================================
 #
-# (A) ANCRE PRIMAIRE : HSBC Continental Europe,
+# (A) ANCRE DOCUMENTAIRE PRINCIPALE : HSBC Continental Europe,
 #     "Capital and Risk Management Pillar 3 Disclosures
 #     at 31 December 2024" (publié mars 2025).
-#     URL : hsbc.com/-/files/hsbc/investors/hsbc-results/2024/annual/pdfs/
-#           hsbc-continental-europe/250313-hsbc-continental-europe-pillar-3-at-2024-dec-31.pdf
-#     Tables utilisées :
-#     - Table 29 (CQ5), page 34 :
-#       encours non financiers par industrie (NACE), non-performing, impairment.
-#       On en dérive des proxies de PD/LGD sectoriels via le ratio
-#       impairment/encours et non-performing/encours.
-#     - Table 40 (CCR4), page 59 :
-#       FIRB - Corporates subtotal :
-#         PD moyenne pondérée = 0.43%
-#         LGD moyenne pondérée = 46.3%
-#       Cette ancre corporate sert de recalage global.
-#     IMPORTANT : les chiffres ne sont PAS des PD/LGD sectorielles
-#     publiées directement. Ce sont des proxies que nous avons
-#     reconstruits puis recalés sur l'ancre corporate.
+#     URL : https://www.hsbc.com/-/files/hsbc/investors/hsbc-results/2024/annual/pdfs/hsbc-continental-europe/250313-hsbc-continental-europe-pillar-3-at-2024-dec-31.pdf
+#     Ce document sert ici d'ancre de structure et d'ordre de grandeur.
+#     Il ne publie pas directement des PD/LGD sectorielles prêtes à l'emploi
+#     pour notre modèle.
+#     Nous l'utilisons surtout pour :
+#     - la ventilation par industrie des expositions, of which defaulted,
+#       impairment et provisions ;
+#     - des ordres de grandeur corporate IRB servant de point d'ancrage global.
+#     Les valeurs sectorielles retenues ci-dessous restent donc des proxys
+#     calibrés, pas des extractions littérales d'une table HSBC.
 #
 # (B) CROSS-CHECK MARCHE : S&P Global Ratings,
 #     "2024 Annual Global Corporate Default and Rating Transition Study"
 #     (publiée mars 2025, données à fin 2024).
-#     URL : maalot.co.il/Publications/FTS20250331162124.pdf
-#     Taux de défaut sectoriels 2024 et moyennes long-terme (LT) :
-#     - Energy & Natural Resources : 2024 = 1.1%, LT avg = 3.0%
-#     - Transportation             : 2024 = 2.0%, LT avg ≈ 2.5%
-#     - Consumer/Service           : 2024 > LT avg (≈2.5%)
-#     - High Technology            : 2024 > LT avg (≈2.0%)
-#     - Real Estate                : 2024 > LT avg (≈2.5%)
-#     - Utilities                  : historiquement très bas (≈0.5-1%)
-#     NOTE : univers global (dont beaucoup de HY US). Un portefeuille
-#     banque européen IG/crossover a des PD bien plus basses.
+#     URL : https://www.spglobal.com/ratings/en/regulatory/article/default-transition-and-recovery-2024-annual-global-corporate-default-and-rating-transition-study-s13452126
+#     Utilisé ici comme repère qualitatif de hiérarchie sectorielle :
+#     - secteurs cycliques ou à forte intensité de financement plus fragiles ;
+#     - utilities historiquement plus résilient ;
+#     - real estate et consumer sensibles au cycle ;
+#     - energy et transport soumis à des effets de marché plus volatils.
+#     NOTE : univers global, plus risqué qu'un portefeuille banque européen
+#     IG/crossover.
 #
 # (C) CONTEXTE EBA :
 #     - EBA Risk Dashboard, Credit Risk Parameters Annex, Q3 2024 :
-#       PD pondérées par exposition, classe "Corporate" IRB ≈ 1.0-2.5%.
-#       URL : eba.europa.eu/.../Credit%20Risk%20parameters%20annex%20-%20Q3%202024.pdf
+#       ordres de grandeur corporate IRB et dispersion des paramètres entre banques.
+#       URL : https://www.eba.europa.eu/sites/default/files/2024-12/116c9bd7-60d2-4f9a-93f9-bb15f964a6d4/Credit%20Risk%20parameters%20annex%20-%20Q3%202024.pdf
 #     - EBA, "Report on the 2023 Credit Risk Benchmarking Exercise"
-#       (publié avril 2024), Section 2 :
-#       LGD pondérées entre 25% et 42% selon collatéralisation (A-IRB).
+#       (publié avril 2024) :
+#       rôle de la collatéralisation et de l'hétérogénéité de portefeuille dans les LGD.
 #     - Basel Foundation IRB (CRR Art. 161 ; BCBS RBC20, 15 Dec 2019) :
 #       LGD prescrite = 45% senior unsecured corporate.
 #       LGD prescrite = 75% subordinated.
+#     Ces références servent à cadrer les niveaux plausibles, sans fournir
+#     un mapping sectoriel direct sur nos 8 secteurs.
 #
 # (D) CORRELATION D'ACTIF : formule Bâle IRB, CRE31 (BCBS, 1 Jan 2023) :
 #       rho_irb(PD) = 0.12*R + 0.24*(1-R), R = (1-exp(-50*PD))/(1-exp(-50))
 #     Documenté en cross-check pour chaque secteur.
-#     Les rho_mean principaux restent stylisés.
+#     L'ajustement sectoriel autour de l'ancre IRB reste stylisé.
 #
 # (E) QUANTILE q = 0.999 :
 #     99.9e percentile du cadre IRB Bâle (BCBS CRE31, 2023 ; Gordy 2003).
 #     Utilisé dans l'eq. (16) du papier pour Lq(g,x).
 #
-# MODIFICATIONS PAR RAPPORT A LA VERSION INITIALE
-# ===============================================
-# 1) Nous conservons exactement la logique documentaire ci-dessus,
-#    mais nous abaissons plusieurs lgd_mean pour obtenir un portefeuille
-#    mieux équilibré entre pertes de queue et RWA.
-# 2) Nous remplaçons l'ancien RW0_exact_proxy direct par une décomposition
-#    explicite en deux étapes :
-#       K0_proxy        = charge en capital baseline
-#       RW0_exact_proxy = 12.5 * K0_proxy
-#    afin de convertir correctement la charge en capital en RWA.
-# 3) Nous remplaçons rho_mean par un ancrage IRB + rho_shift sectoriel :
-#       rho_i = rho_irb(PD_sector) + rho_shift_sector + bruit
-#    ce qui garde le cross-check Bâle tout en permettant une stylisation sectorielle.
+# CONVENTIONS DE CALIBRATION
+# ==========================
+# 1) Les pd_mean / lgd_mean ci-dessous sont des valeurs de calibration
+#    retenues pour produire un portefeuille plausible et lisible.
+# 2) RW0_exact_proxy est exprimé en unité RWA via 12.5 * K0_proxy.
+# 3) rho_i est ancré sur la formule IRB corporate, puis ajusté par secteur.
 # ============================================================
 
 from pathlib import Path
@@ -133,15 +122,17 @@ TOTAL_EAD = 100.0
 Q = 0.999
 
 # 8 secteurs couvrant les grandes classes d'un portefeuille corporate.
-# Hiérarchie cohérente avec ECB WP 2897 (Lo Duca et al., 2025),
-# EBA 2025 stress test, et S&P 2024 default study.
+# Hiérarchie stylisée, ancrée sur l'ECB FSR (May 2024),
+# l'EBA 2025 stress test et la S&P 2024 default study.
 SECTORS = [
     "Energy", "Transport", "Manufacturing", "Consumer",
     "Tech", "Utilities", "Defense", "RealEstate",
 ]
 
 # Poids sectoriels : portefeuille corporate européen diversifié.
-# Manufacturing et RealEstate surpondérés (cf. HSBC P3 Table 29 industry breakdown).
+# Manufacturing et RealEstate surpondérés : choix stylisé cohérent avec
+# un portefeuille corporate européen diversifié ; HSBC P3 sert ici surtout
+# d'ancre qualitative de structure, pas de preuve sectorielle stricte.
 SECTOR_WEIGHTS = {
     "Energy": 0.12, "Transport": 0.10, "Manufacturing": 0.18, "Consumer": 0.15,
     "Tech": 0.12, "Utilities": 0.08, "Defense": 0.07, "RealEstate": 0.18,
@@ -160,143 +151,115 @@ def basel_irb_rho(pd: float) -> float:
 # ============================================================
 # SECTOR_PROFILE — chaque valeur est documentée
 # ============================================================
-# [HSBC P3]  = proxy dérivé de HSBC Continental Europe Pillar 3 (31 Dec 2024)
-# [fallback] = ancre corporate HSBC (PD=0.43%, LGD=46.3%) faute de ligne sectorielle
-# [stylisé]  = hypothèse de modélisation, pas directement sourcée
-#
-# AJOUT : nous gardons les mêmes commentaires détaillés que dans la version
-# initiale, mais les lgd_mean et la façon de traiter rho évoluent pour coller
-# au calibrage final retenu après tests portefeuille/capital.
+# [proxy calibré]   = valeur retenue à partir d'ordres de grandeur documentaires
+#                     et d'un recalage de portefeuille ; pas une statistique
+#                     sectorielle publiée telle quelle
+# [ancre corporate] = valeur corporate de référence utilisée faute de lecture
+#                     sectorielle suffisamment robuste
+# [stylisé]         = hypothèse de modélisation
 # ============================================================
 
 SECTOR_PROFILE = {
 
     # ── Energy ──────────────────────────────────────────────
-    # pd_mean = 0.445% [HSBC P3] : Table 29, lignes NACE B+D.
-    #   Cross-check S&P 2024 : energy default rate = 1.1%, LT avg = 3.0%.
-    #   Notre 0.445% << S&P car on modélise un portefeuille banque IG/crossover.
-    #   Cross-check EBA Risk Dashboard Q3 2024 : corporate IRB ≈ 1.0-2.5%.
-    # lgd_mean = 24.4% [HSBC P3] : Table 29 impairment/encours.
-    #   Cross-check EBA Benchmarking 2023 : 25-42% selon collatéral.
-    #   Actifs physiques (champs, raffineries) → bas de fourchette. Cohérent.
-    #   Réf. réglementaire : Basel F-IRB = 45% senior unsecured (CRR Art. 161).
-    # rho_mean = 0.20 [stylisé] ; Bâle IRB CRE31 à PD=0.445% → 0.2161. Proche.
+    # pd_mean = 0.445% [proxy calibré] : niveau bas retenu pour un
+    #   portefeuille banque IG/crossover.
+    # lgd_mean = 24.0% [proxy calibré] : niveau bas cohérent avec la présence
+    #   d'actifs physiques et de recouvrements potentiellement meilleurs.
+    # rho_shift = 0.000 [stylisé] : secteur laissé au voisinage de l'ancre IRB.
     # m_mean = 2.8 [stylisé] : maturité typique financements énergie mid-term.
-    # alpha_mult = 1.15 [stylisé] : surpondération RWA (expositions energy = RW élevés).
-    # MODIFICATION : dans la version finale, nous gardons pd_mean et lgd_mean,
-    # mais nous remplaçons rho_mean par rho_shift=0.000 autour de l'ancre IRB.
+    # alpha_mult = 1.15 [stylisé] : légère surpondération RWA.
     "Energy": {
         "pd_mean": 0.00445, "lgd_mean": 0.24,
         "rho_shift": 0.000, "m_mean": 2.8, "alpha_mult": 1.15,
     },
 
     # ── Transport ───────────────────────────────────────────
-    # pd_mean = 0.116% [HSBC P3] : Table 29, NACE H.
-    #   Cross-check S&P 2024 : transport default rate = 2.0%.
-    #   Écart normal : HSBC = IRB PD TTC portefeuille IG ; S&P = univers global + HY.
-    # lgd_mean = 75.0% [HSBC P3, cappé] : très haut, reflète probablement des
-    #   expositions peu collatéralisées (leasing aérien, shipping non secured).
-    #   Réf. : Basel F-IRB = 75% pour subordinated (CRR Art. 161).
-    #   EBA Benchmarking 2023 : 25-42% secured, mais transport non secured >> 42%.
-    # rho_mean = 0.18 [stylisé] ; Bâle CRE31 → 0.2332. Hypothèse conservatrice.
-    # m_mean = 2.7 [stylisé]. alpha_mult = 1.10 [stylisé].
-    # MODIFICATION : nous abaissons lgd_mean de 75% à 58% pour mieux équilibrer
-    # pertes de queue et RWA dans le portefeuille simulé final.
-    # MODIFICATION : rho_mean devient rho_shift=-0.005 autour de l'ancre IRB.
+    # pd_mean = 0.116% [proxy calibré] : valeur volontairement basse à la baseline,
+    #   distincte des taux de défaut de marché plus volatils.
+    # lgd_mean = 58.0% [proxy calibré] : niveau élevé cohérent avec des expositions
+    #   potentiellement moins collatéralisées.
+    # rho_shift = -0.005 [stylisé] : léger décalage sous l'ancre IRB.
+    # m_mean = 2.7 [stylisé] : maturité moyenne transport.
+    # alpha_mult = 1.10 [stylisé] : légère surpondération RWA.
     "Transport": {
         "pd_mean": 0.00116, "lgd_mean": 0.58,
         "rho_shift": -0.005, "m_mean": 2.7, "alpha_mult": 1.10,
     },
 
     # ── Manufacturing ───────────────────────────────────────
-    # pd_mean = 0.187% [HSBC P3] : Table 29, NACE C.
-    #   Cross-check S&P 2024 : forest/building + capital goods ≈ 2.5%.
-    # lgd_mean = 56.36% [HSBC P3] : machines/stocks = collatéral partiel → ~56%.
-    #   EBA Benchmarking 2023 : 25-42% bien collatéralisé, mais mix secured/unsecured.
-    # rho_mean = 0.17 [stylisé] ; Bâle CRE31 → 0.2293.
-    # m_mean = 2.6, alpha_mult = 1.00 [stylisé] : secteur de référence.
-    # MODIFICATION : nous abaissons légèrement lgd_mean à 46%.
-    # MODIFICATION : rho_mean devient rho_shift=-0.010 autour de l'ancre IRB.
+    # pd_mean = 0.187% [proxy calibré] : niveau bas à modéré pour un secteur
+    #   industriel diversifié.
+    # lgd_mean = 46.0% [proxy calibré] : niveau intermédiaire cohérent avec un
+    #   collatéral partiel et des structures de financement mixtes.
+    # rho_shift = -0.010 [stylisé] : manufacturing légèrement sous l'ancre IRB.
+    # m_mean = 2.6 [stylisé] : secteur de référence.
+    # alpha_mult = 1.00 [stylisé] : secteur pivot du portefeuille.
     "Manufacturing": {
         "pd_mean": 0.00187, "lgd_mean": 0.46,
         "rho_shift": -0.010, "m_mean": 2.6, "alpha_mult": 1.00,
     },
 
     # ── Consumer ────────────────────────────────────────────
-    # pd_mean = 0.421% [HSBC P3] : Table 29, NACE G.
-    #   Cross-check S&P 2024 : consumer/service > LT avg (≈2.5%).
-    # lgd_mean = 48.26% [HSBC P3] : peu de collatéral physique (marques, goodwill).
-    #   Proche de Basel F-IRB 45%. EBA Benchmarking : fourchette haute unsecured.
-    # rho_mean = 0.16 [stylisé] ; Bâle CRE31 → 0.2172.
+    # pd_mean = 0.421% [proxy calibré] : secteur placé au-dessus de la moyenne
+    #   du portefeuille sur la composante défaut.
+    # lgd_mean = 43.0% [proxy calibré] : niveau cohérent avec un collatéral
+    #   physique souvent limité.
+    # rho_shift = -0.015 [stylisé] : léger décalage sous l'ancre IRB.
     # m_mean = 2.4 [stylisé] : maturités courtes (revolving, trade finance).
-    # MODIFICATION : nous abaissons légèrement lgd_mean à 43%.
-    # MODIFICATION : rho_mean devient rho_shift=-0.015 autour de l'ancre IRB.
+    # alpha_mult = 1.00 [stylisé].
     "Consumer": {
         "pd_mean": 0.00421, "lgd_mean": 0.43,
         "rho_shift": -0.015, "m_mean": 2.4, "alpha_mult": 1.00,
     },
 
     # ── Tech ────────────────────────────────────────────────
-    # pd_mean = 0.175% [HSBC P3] : Table 29, NACE J.
-    #   Cross-check S&P 2024 : high-tech > LT avg (≈2.0%). Grandes techs EU solides.
-    # lgd_mean = 69.01% [HSBC P3] : actifs intangibles (IP, software, brevets),
-    #   très peu de collatéral physique → très au-dessus de Basel F-IRB 45%.
-    # rho_mean = 0.14 [stylisé] ; Bâle CRE31 → 0.2299.
-    #   Bas volontairement : forte composante idiosyncratique (innovation, disruption).
-    # m_mean = 2.3 [stylisé] : maturités courtes. alpha_mult = 0.80 [stylisé].
-    # MODIFICATION : nous abaissons lgd_mean à 52% et remplaçons rho_mean
-    # par rho_shift=-0.020 autour de l'ancre IRB.
+    # pd_mean = 0.175% [proxy calibré] : niveau bas à modéré retenu pour un
+    #   secteur tech de qualité relativement correcte.
+    # lgd_mean = 52.0% [proxy calibré] : niveau plus élevé en raison d'un
+    #   collatéral souvent moins tangible.
+    # rho_shift = -0.020 [stylisé] : part idiosyncratique supposée plus forte.
+    # m_mean = 2.3 [stylisé] : maturités courtes.
+    # alpha_mult = 0.80 [stylisé] : sensibilité RWA un peu plus faible.
     "Tech": {
         "pd_mean": 0.00175, "lgd_mean": 0.52,
         "rho_shift": -0.020, "m_mean": 2.3, "alpha_mult": 0.80,
     },
 
     # ── Utilities ───────────────────────────────────────────
-    # pd_mean = 0.150% [HSBC P3] : Table 29, NACE D.
-    #   Cross-check S&P : utilities historiquement ≈ 0.5-1%. Secteur régulé. Cohérent.
-    # lgd_mean = 67.57% [HSBC P3] : étonnamment haut. Peut refléter du project finance
-    #   non secured. EBA Benchmarking 2023 : utilities collatéralisé ≈ 28%.
-    #   On garde le proxy HSBC pour fidélité à la source. Le script principal peut override.
-    # rho_mean = 0.12 [stylisé] ; Bâle CRE31 → 0.2313.
-    #   Bas : cash-flows régulés/contractuels → faible corrélation macro.
-    # m_mean = 3.0 [stylisé] : maturités longues (infra). alpha_mult = 0.70 [stylisé].
-    # MODIFICATION : nous abaissons lgd_mean à 45% et remplaçons rho_mean
-    # par rho_shift=-0.025 autour de l'ancre IRB.
+    # pd_mean = 0.150% [proxy calibré] : secteur positionné parmi les plus
+    #   résilients du portefeuille.
+    # lgd_mean = 45.0% [proxy calibré] : niveau intermédiaire retenu pour un
+    #   secteur régulé, avec actifs réels mais recouvrements hétérogènes.
+    # rho_shift = -0.025 [stylisé] : utilities placé sous l'ancre IRB.
+    # m_mean = 3.0 [stylisé] : maturités longues (infra).
+    # alpha_mult = 0.70 [stylisé] : sensibilité RWA plus faible.
     "Utilities": {
         "pd_mean": 0.00150, "lgd_mean": 0.45,
         "rho_shift": -0.025, "m_mean": 3.0, "alpha_mult": 0.70,
     },
 
     # ── Defense ─────────────────────────────────────────────
-    # pd_mean = 0.430% [fallback ancre corporate HSBC, Table 40 CCR4].
-    #   Pas de ligne NACE robuste pour defense dans HSBC P3.
-    #   S&P : pas de catégorie dédiée. Contrats étatiques → défaut rare.
-    # lgd_mean = 46.3% [fallback ancre corporate HSBC, Table 40 CCR4].
-    #   Contrats gouvernementaux → recouvrement intermédiaire.
-    # rho_mean = 0.15 [stylisé] ; Bâle CRE31 → 0.2168.
+    # pd_mean = 0.430% [ancre corporate] : faute de lecture sectorielle robuste,
+    #   on retient une ancre corporate prudente.
+    # lgd_mean = 46.0% [ancre corporate] : niveau intermédiaire retenu pour un
+    #   secteur à contrats souvent longs et recouvrements spécifiques.
+    # rho_shift = -0.015 [stylisé] : léger décalage sous l'ancre IRB.
     # m_mean = 2.8 [stylisé] : contrats étatiques long terme.
-    # MODIFICATION : nous gardons lgd_mean=46% et remplaçons rho_mean
-    # par rho_shift=-0.015 autour de l'ancre IRB.
+    # alpha_mult = 0.90 [stylisé].
     "Defense": {
         "pd_mean": 0.00430, "lgd_mean": 0.46,
         "rho_shift": -0.015, "m_mean": 2.8, "alpha_mult": 0.90,
     },
 
     # ── RealEstate ──────────────────────────────────────────
-    # pd_mean = 1.005% [HSBC P3] : Table 29, NACE L.
-    #   Cross-check S&P 2024 : real estate > LT avg (≈2.5%).
-    #   Cross-check EBA RAR Nov 2024 : chapitre dédié CRE risks, pressions
-    #   persistantes en Europe (correction valorisations, taux élevés, vacance bureaux).
-    #   PD la plus haute de notre portefeuille → cohérent avec le contexte.
-    # lgd_mean = 39.77% [HSBC P3] : collatéral immobilier physique direct.
-    #   EBA Benchmarking 2023 : CRE secured ≈ 25-35%. Basel F-IRB = 35% CRE secured.
-    #   Notre 40% = légèrement au-dessus (mix secured/partially secured).
-    # rho_mean = 0.19 [stylisé] ; Bâle CRE31 → 0.1926. Très proche.
+    # pd_mean = 1.005% [proxy calibré] : secteur placé en haut de la distribution
+    #   baseline, cohérent avec une exposition plus cyclique au financement.
+    # lgd_mean = 42.0% [proxy calibré] : niveau intermédiaire cohérent avec un
+    #   collatéral immobilier imparfaitement protecteur.
+    # rho_shift = 0.000 [stylisé] : secteur maintenu au voisinage de l'ancre IRB.
     # m_mean = 3.2 [stylisé] : maturités longues prêts CRE.
-    # alpha_mult = 1.20 [stylisé] : surpondération forte (CRE = secteur le plus
-    #   sensible aux RWA dans les stress tests EBA 2025, cf. résultats août 2025).
-    # MODIFICATION : nous gardons la structure et remplaçons rho_mean par rho_shift=0.000.
-    # MODIFICATION : nous arrondissons lgd_mean à 42% dans le calibrage final.
+    # alpha_mult = 1.20 [stylisé] : surpondération RWA marquée.
     "RealEstate": {
         "pd_mean": 0.01005, "lgd_mean": 0.42,
         "rho_shift": 0.000, "m_mean": 3.2, "alpha_mult": 1.20,
@@ -370,11 +333,9 @@ df["PD0"] = df["PD0"].clip(lower=0.0005, upper=0.20)
 # Le papier part de LGD0_i (Section 3.1) puis construit LGD_i(g,x)
 # via eq. (9)-(10) dans le script principal.
 # Bruit ADDITIF normal : LGD ∈ [0,1], additif plus contrôlable.
-# scale=0.04 → ±4pp d'écart-type, modéré.
+# scale=0.035 → ±3.5pp d'écart-type, modéré.
 # Bornes : lower=0.10 (coûts minimaux de recouvrement), upper=0.90.
-#
-# MODIFICATION : nous réduisons légèrement la dispersion à 0.035 pour garder
-# une LGD moyenne portefeuille plus stable après les ajustements sectoriels.
+# Cette dispersion garde une LGD moyenne portefeuille assez stable.
 # ============================================================
 
 lgd_noise = RNG.normal(loc=0.0, scale=0.035, size=len(df))
@@ -387,13 +348,11 @@ df["LGD0"] = df["LGD0"].clip(lower=0.10, upper=0.90)
 # ============================================================
 # rho_i = corrélation d'actif, eq. (11) du papier :
 #   Y_i = sqrt(rho_i)*Z + sqrt(1-rho_i)*epsilon_i
-# Bruit additif normal, scale=0.015 (±1.5pp). Bornes : [0.05, 0.35].
-# La formule Bâle IRB (CRE31) donne max ≈ 0.24 ; nos bornes sont plus larges
+# Bruit additif normal, scale=0.010 (±1pp). Bornes : [0.08, 0.30].
+# La formule Bâle IRB (CRE31) donne max ≈ 0.24 ; nos bornes restent plus larges
 # pour flexibilité (le modèle de corrélation stylisé peut différer du réglementaire).
-#
-# MODIFICATION : nous n'utilisons plus directement rho_mean_sector.
-# Nous ancrons désormais rho sur la formule IRB corporate, puis nous ajoutons
-# un rho_shift sectoriel et un bruit plus faible (scale=0.010).
+# rho est ancré sur la formule IRB corporate, puis ajusté
+# par un rho_shift sectoriel et un bruit additif.
 # ============================================================
 
 rho_irb_base = df["pd_mean_sector"].apply(basel_irb_rho).to_numpy()
@@ -423,8 +382,7 @@ df["M"] = df["M"].clip(lower=1.0, upper=5.0)
 # gamma(M) = ajustement de maturité (BCBS CRE31, §31.44).
 # On simplifie gamma(M) par une fonction linéaire centrée sur M=2.5, bornée [0.80,1.25].
 #
-# MODIFICATION MAJEURE :
-# Dans la version finale, on explicite d'abord K0_proxy comme proxy de charge
+# On explicite d'abord K0_proxy comme proxy de charge
 # en capital baseline, puis on convertit en RWA via le facteur 12.5.
 # Cela permet de garder une lecture claire :
 #   K0_proxy        ≈ charge en capital
@@ -452,7 +410,7 @@ df["K0_proxy"] = (
 df["K0_proxy"] = df["K0_proxy"].clip(lower=0.0)
 
 # RW0_i = 12.5 * K0_i
-# AJOUT : facteur réglementaire de conversion charge en capital → RWA.
+# Facteur réglementaire de conversion charge en capital → RWA.
 df["RW0_exact_proxy"] = 12.5 * df["K0_proxy"]
 
 
@@ -462,13 +420,11 @@ df["RW0_exact_proxy"] = 12.5 * df["K0_proxy"]
 # Eq. (21) du papier : RWA(g,x) = RWA0 + sum_i alpha_i*(PD_i(g,x) - PD0_i).
 # alpha_i = pente locale des RWA par rapport à PD_i.
 # On calibre : alpha_i ∝ EAD_i * RW0_i * alpha_mult_k / max(PD0_i, 0.005).
-# Le facteur 0.60 est un coefficient d'échelle [stylisé].
+# Le facteur 0.35 est un coefficient d'échelle [stylisé].
 # La division par PD0 (avec plancher 0.005) capte la non-linéarité IRB
 # (pente dRW/dPD plus forte pour PD basses).
-#
-# MODIFICATION : comme RW0 est désormais exprimé en unité RWA via 12.5,
-# nous abaissons le coefficient d'échelle de 0.60 à 0.35 pour garder
-# alpha_rwa dans un ordre de grandeur raisonnable.
+# Ce coefficient est choisi pour garder alpha_rwa dans un ordre de
+# grandeur raisonnable.
 # ============================================================
 
 pd_floor = np.maximum(df["PD0"].to_numpy(), 0.005)
