@@ -51,18 +51,28 @@ Le **design point** `s*` est la solution du RST : le scénario de rupture le plu
 
 **Python requis : 3.12+**
 
-```bash
-# Cloner ou ouvrir le dossier du projet
-cd Reverse_stress_test
+Le projet suppose aussi que la table macro harmonisée `data/interim/macro.csv` est déjà présente dans le dépôt. Le pipeline principal s'appuie directement dessus et s'arrête si elle est absente.
+
+```powershell
+# Ouvrir le dossier du projet
+cd C:\Master_1_ESA\Projet_square\Reverse_stress_test
 
 # Créer l'environnement virtuel
-python -m venv env
+py -3.12 -m venv env
 
-# Activer l'environnement (Windows)
-env\Scripts\activate
+# Activer l'environnement (PowerShell)
+.\env\Scripts\Activate.ps1
 
 # Installer les dépendances
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+```
+
+```bash
+# Variante Bash / WSL
+cd Reverse_stress_test
+python3 -m venv env
+source env/bin/activate
+python -m pip install -r requirements.txt
 ```
 
 ---
@@ -178,6 +188,7 @@ Généré par `simulate_capital.py` — les valeurs de `CET1_0` et `RWA_0` sont 
 | `R0` | Ratio de capital baseline `R0 = CET1_0 / RWA_0 = 14%` |
 | `R_omega` | Seuil de rupture `R_omega = 11%` |
 | `q` | Quantile de queue `q = 99.9%` |
+| `delta_non_credit` | Ajustement non-crédit dans `CET1(s)` ; fixé à `0.0` dans l'implémentation courante |
 | `Lq0_abs` | Perte de queue absolue `L_q(0)` à la baseline |
 | `baseline_convention` | Convention de correction baseline utilisée dans le pipeline |
 
@@ -197,6 +208,8 @@ Généré par `simulate_sector_params.py` — coefficients **stylisés** de tran
 Table trimestrielle harmonisée utilisée directement par le pipeline pour construire les chocs standardisés.
 Elle contient les 8 variables macroéconomiques :
 `GPRD`, `gdp`, `vix`, `sp500`, `wti`, `t10Y2Y`, `unrate`, `epu`
+
+> Pré-requis important : cette table n'est pas regénérée par `run_project.py`. Elle doit déjà exister avant le lancement du pipeline.
 
 ### `data/raw/` — Sources brutes
 
@@ -520,9 +533,9 @@ Tous dans `src/config.py` :
 
 ### Lancement complet (recommandé)
 
-```bash
+```powershell
 # Depuis le dossier du projet, avec l'environnement activé
-env\Scripts\python.exe run_project.py
+.\env\Scripts\python.exe run_project.py
 ```
 
 Ce script exécute **4 étapes dans l'ordre** :
@@ -536,35 +549,35 @@ Ce script exécute **4 étapes dans l'ordre** :
 
 ### Lancement du pipeline seul (sans regénérer les inputs)
 
-```bash
-env\Scripts\python.exe -m src.run_rst
+```powershell
+.\env\Scripts\python.exe -m src.run_rst
 ```
 
 ### Regénérer uniquement les inputs
 
-```bash
-env\Scripts\python.exe Simulations/simulate_exposures.py
-env\Scripts\python.exe Simulations/simulate_capital.py
-env\Scripts\python.exe Simulations/simulate_sector_params.py
+```powershell
+.\env\Scripts\python.exe Simulations/simulate_exposures.py
+.\env\Scripts\python.exe Simulations/simulate_capital.py
+.\env\Scripts\python.exe Simulations/simulate_sector_params.py
 ```
 
 ### Lancement d'un graphique seul
 
-```bash
-env\Scripts\python.exe -m src.visualization.fig1_geometry
-env\Scripts\python.exe -m src.visualization.fig5_plausibility
+```powershell
+.\env\Scripts\python.exe -m src.visualization.fig1_geometry
+.\env\Scripts\python.exe -m src.visualization.fig5_plausibility
 ```
 
 ### Lancement des tests unitaires
 
-```bash
-env\Scripts\python.exe -m unittest discover -s tests
+```powershell
+.\env\Scripts\python.exe -m unittest discover -s tests
 ```
 
 ### Lancement du script original (MVP)
 
-```bash
-env\Scripts\python.exe MVP.py
+```powershell
+.\env\Scripts\python.exe MVP.py
 ```
 
 ---
