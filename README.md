@@ -45,13 +45,13 @@ Formellement, le *design point* `s*` est la solution du programme
 
 $$s^\star \in \arg\min_{s \in \mathcal{S}_{\mathrm{red}},\ g \geq 0} \tfrac{1}{2}\, d^2(s),$$
 
-où $d^2(s) = s^\top \Sigma^{-1} s$ est la distance de Mahalanobis sous la loi
-gaussienne de référence et $\mathcal{S}_{\mathrm{red}} = \lbrace s : R(s) \leq R_\omega \rbrace$
-la zone où le ratio de capital franchit le seuil. Le pipeline propage chaque
-scénario `s` vers les PD et LGD sectorielles, vers la perte de queue Vasicek
-au quantile prudentiel et vers le ratio `R(s) = CET1(s) / RWA(s)`.
-La contrainte théorique `g > 0` du papier est écrite `g >= 0` dans le code
-pour rester compatible avec le solveur SLSQP.
+où `d²(s) = sᵀ Σ⁻¹ s` est la distance de Mahalanobis sous la loi gaussienne
+de référence et `S_red = {s : R(s) <= R_omega}` la zone où le ratio de
+capital franchit le seuil. Le pipeline propage chaque scénario `s` vers les
+PD et LGD sectorielles, vers la perte de queue Vasicek au quantile
+prudentiel et vers le ratio `R(s) = CET1(s) / RWA(s)`. La contrainte
+théorique `g > 0` du papier est écrite `g >= 0` dans le code pour rester
+compatible avec le solveur SLSQP.
 
 Le run de référence (paramètres par défaut, `SEED = 42`) :
 
@@ -336,8 +336,8 @@ Transmission de la PD (eq. 7 du papier, écriture logit) :
 
 $$\mathrm{logit}\bigl(PD_{\text{stress}}(i)\bigr) = \mathrm{logit}\bigl(PD_0(i)\bigr) + \delta_g(i) \cdot g + \sum_j b_j(i) \cdot x_j.$$
 
-Après reprojection logistique, $PD_{\text{stress}}(i) \in (0, 1)$ et
-$PD_{\text{stress}}(i) = PD_0(i)$ exactement en $s = 0$.
+Après reprojection logistique, `PD_stress(i)` est strictement dans `(0, 1)`
+et `PD_stress(i) = PD_0(i)` exactement en `s = 0`.
 
 Transmission de la LGD (adaptation lisse de l'eq. 10 du papier) :
 
@@ -345,7 +345,7 @@ $$z^{LGD}_i(s) = \phi^{-1}\bigl(LGD_0(i)\bigr) + \eta_g(i) \cdot g + \sum_j c_j(
 
 $$LGD_{\text{stress}}(i) = \phi\bigl(z^{LGD}_i(s)\bigr),$$
 
-où $\phi$ est une projection lisse bornée dans $(0, 1)$. Le papier écrit une
+où `phi` est une projection lisse bornée dans `(0, 1)`. Le papier écrit une
 LGD affine, tronquée si nécessaire ; l'implémentation applique cette logique
 en espace latent pour préserver la baseline.
 
@@ -362,7 +362,7 @@ $$CET1(s) = CET1_0 - \Delta L_q(s) + \Delta_{\text{non-credit}}, \qquad RWA(s) =
 
 $$R(s) = \frac{CET1(s)}{RWA(s)}.$$
 
-Cette adaptation garantit $R(0) = R_0$ exactement, car `CET1_0` est déjà le
+Cette adaptation garantit `R(0) = R_0` exactement, car `CET1_0` est déjà le
 capital observé au point de départ.
 
 Ensembles plausibles :
