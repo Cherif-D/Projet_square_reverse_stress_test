@@ -151,6 +151,8 @@ class ReverseStressEngine:
         if self.enforce_stress_only_floor:
             pd_stress = np.maximum(pd_stress, self.pd0)
 
+        # Adaptation lisse de l'eq. (10) : affine en espace latent,
+        # puis projection bornée pour garder LGD dans (0,1).
         raw_lgd = self.lgd0_anchor + self.eta_g * g_val
         if self.x_idx:
             raw_lgd = raw_lgd + self.lgd_beta @ x_vec

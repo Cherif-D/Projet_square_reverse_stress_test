@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 # ============================================================
-# CHEMINS DU PROJET
+# CHEMINS DU DEPOT
 # ============================================================
 #
-# Ce module centralise tous les chemins utilisés dans le projet.
+# Ce module centralise tous les chemins utilisés dans l'implémentation.
 #
-# On détecte automatiquement la racine du projet.
+# On détecte automatiquement la racine du dépôt.
 # src/paths.py est dans src/, donc la racine est deux niveaux au-dessus.
 # ============================================================
 
 from pathlib import Path
 
 SCRIPT_PATH = Path(__file__).resolve()
-ROOT = SCRIPT_PATH.parents[1]   # src/ -> project root
+ROOT = SCRIPT_PATH.parents[1]   # src/ -> racine du dépôt
 
 DATA    = ROOT / "data"
 RAW     = DATA / "raw"

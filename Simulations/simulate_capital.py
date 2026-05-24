@@ -12,7 +12,7 @@ from __future__ import annotations
 # LIEN AVEC LE PAPIER (Hurlin, Lajaunie, Pull, 7 janvier 2026)
 # -------------------------------------------------------------
 # - CET1_0, RWA_0 → Section 3.1, eq. (2) : R0 = CET1_0 / RWA_0
-# - R_omega       → eq. (4) : seuil de rupture R*
+# - R_omega       → eq. (3)-(4) : seuil de rupture R_omega
 #                   Ici, on l'implémente comme une déplétion ABSOLUE de 300 bps
 #                   sur le ratio CET1 initial, conformément à l'annonce BCE du
 #                   12 décembre 2025 (ECB, 2025b) :
@@ -27,7 +27,9 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 # Le script principal devra utiliser :
 #   delta_Lq(s) = Lq(s) - Lq(0)
-#   CET1(s) = CET1_0 - delta_Lq(s) + delta_non_credit    → eq. (17) du papier
+#   CET1(s) = CET1_0 - delta_Lq(s) + delta_non_credit
+#      adaptation baseline de l'eq. (17), puisque CET1_0 est déjà le capital
+#      observé au point de départ.
 #   RWA(s)  = RWA_0  + sum_i alpha_i*(PD_i(s) - PD0_i)   → eq. (21) du papier
 #   R(s)    = CET1(s) / RWA(s)                            → eq. (22) du papier
 # Cela garantit R(0) = R0 exactement.
@@ -80,10 +82,15 @@ R0_TARGET = 0.14
 # On retient la dépletion en termes ABSOLUS (300 bps = 0.03 en points de ratio).
 # R_omega = R0 - 0.03 = 0.14 - 0.03 = 0.11
 #
-# Note : l'eq. (4) du papier peut s'écrire R* = R0 - Delta avec Delta = 0.03,
-# ou de façon équivalente R* = R0*(1 - Delta/R0). On n'utilise pas la forme
-# multiplicative R* = R0*(1-Delta) car elle ne correspond pas aux 300 bps absolus
-# de l'ECB lorsque Delta = 0.03.
+# Note : le papier (eq. 4) écrit la convention relative
+#   R_omega = R0 * (1 - delta)
+# c'est-à-dire une déplétion proportionnelle au ratio initial. Ici on retient
+# la convention absolue retenue par la note finale à partir de l'annonce ECB
+# du 12 décembre 2025 : déplétion de 300 bps en points de ratio, soit
+#   R_omega = R0 - 0.03 = 0.14 - 0.03 = 0.11.
+# La forme multiplicative R_omega = R0 * (1 - 0.03) donnerait 0.1358, ce qui
+# ne correspond pas aux 300 bps absolus visés par la BCE. On ne l'utilise donc
+# pas dans cette implémentation.
 DEPLETION = 0.03
 R_OMEGA = R0_TARGET - DEPLETION   # = 0.11  (dépletion absolue de 300 bps)
 

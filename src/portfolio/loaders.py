@@ -20,12 +20,33 @@ from src.paths import INPUTS
 
 def load_inputs():
     """
-    On charge :
-    - exposures.csv
-    - capital.csv
-    - sector_params.csv
+    Charge et valide les trois CSV produits par `Simulations/`.
 
-    Ces trois fichiers sont la couche d'inputs qu'on a construite avant.
+    Fichiers attendus dans `inputs/` :
+      - `exposures.csv` (500 lignes au moins, schéma exposition par exposition)
+      - `capital.csv` (une ligne, paramètres de capital)
+      - `sector_params.csv` (huit lignes, coefficients sectoriels)
+
+    Validations effectuées :
+      - Présence des colonnes requises (`id`, `sector`, `EAD`, `PD0`,
+        `LGD0`, `rho`, `M`, `alpha_rwa` pour `exposures` ; `CET1_0`,
+        `RWA_0`, `R0`, `R_omega`, `q`, `delta_non_credit`, `Lq0_abs`
+        pour `capital` ; `sector`, `delta_g`, `eta_g` pour
+        `sector_params`).
+      - Conversion numérique forcée sur les colonnes quantitatives ;
+        toute valeur non convertible déclenche une `ValueError`.
+      - Bornes de domaine :
+          * `EAD > 0`, `M > 0`, `alpha_rwa >= 0`, `RWA_0 > 0` ;
+          * `PD0` strictement dans (0, 1) ; `LGD0` dans [0, 1] ;
+          * `rho` strictement dans (0, 1) ; `q` strictement dans (0, 1).
+      - Absence de doublons sur la colonne `sector` de `sector_params`.
+      - Non-nullité des colonnes `id` et `sector` de `exposures`.
+
+    Retourne
+    --------
+    tuple
+        `exposures` (DataFrame), `capital` (Series — première ligne du
+        CSV), `sector_params` (DataFrame).
     """
 
     exp_path = INPUTS / "exposures.csv"

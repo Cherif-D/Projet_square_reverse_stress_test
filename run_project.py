@@ -1,14 +1,14 @@
 from __future__ import annotations
-import sys, io
+import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
 # ============================================================
-# POINT D'ENTREE DU PROJET
+# POINT D'ENTREE DU PIPELINE
 # ============================================================
 #
-# Ce script orchestre l'ensemble du projet en quatre phases :
+# Ce script orchestre l'ensemble du pipeline en quatre phases :
 #
 # 0. Simulations — génération des inputs (Simulations/)
 #    - simulate_exposures.py     → inputs/exposures.csv
@@ -29,7 +29,7 @@ if hasattr(sys.stdout, "reconfigure"):
 #
 # 3. Visualisations — src/visualization/ (graphiques du papier)
 #    - fig1_geometry.png       : Figure 1 — Géométrie RST (S_red, frontière, boule locale)
-#    - fig2_near_optimal.png   : Figure 2 — Ensemble N_epsilon near-optimal
+#    - fig2_near_optimal.png   : Figure 2 — Ensemble N_phi near-optimal
 #    - fig3_roadmap.png        : Figure 3 — Feuille de route d'implémentation
 #    - fig4_scenario_selection.png : Figure 4 — Sélection farthest-point
 #    - fig5_plausibility.png   : Figure 5 — Gaussienne vs. Student-t (heatmaps)
@@ -41,14 +41,13 @@ if hasattr(sys.stdout, "reconfigure"):
 # -----
 #   python run_project.py
 #
-# À exécuter depuis la racine du projet.
+# À exécuter depuis la racine du dépôt.
 # ============================================================
 
-import sys
 import importlib
 from pathlib import Path
 
-# On s'assure que la racine du projet est dans le path Python.
+# On s'assure que la racine du dépôt est dans le path Python.
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -155,7 +154,7 @@ def run_src_visualizations():
     viz_steps = [
         ("\n--- Figure 3 : Feuille de route (flowchart) ---",      plot_fig3_roadmap),
         ("\n--- Figure 1 : Géométrie RST ---",                      plot_fig1_geometry),
-        ("\n--- Figure 2 : Ensemble N_epsilon ---",                  plot_fig2_near_optimal),
+        ("\n--- Figure 2 : Ensemble N_phi ---",                      plot_fig2_near_optimal),
         ("\n--- Figure 4 : Sélection de scénarios finis ---",        plot_fig4_scenario_selection),
         ("\n--- Figure 5 : Plausibilité Gaussienne vs Student-t ---", plot_fig5_plausibility),
         ("\n--- Profil du scénario de rupture ---",                  plot_scenario_profile),
@@ -177,4 +176,4 @@ if __name__ == "__main__":
     run_legacy_visualizations()
     run_src_visualizations()
     print()
-    print("Projet terminé. Consulter outputs/plots/ pour tous les graphiques.")
+    print("Pipeline terminé. Consulter outputs/plots/ pour tous les graphiques.")

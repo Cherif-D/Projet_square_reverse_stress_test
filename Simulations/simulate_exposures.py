@@ -390,7 +390,7 @@ df["M"] = df["M"].clip(lower=1.0, upper=5.0)
 # ============================================================
 
 def maturity_adjustment_proxy(M: np.ndarray) -> np.ndarray:
-    """Proxy simplifié de gamma(M). Source : approx. BCBS CRE31 §31.44."""
+    """Proxy linéaire stylisé inspiré de l'ajustement de maturité IRB."""
     return np.clip(1.0 + 0.08 * (M - 2.5), 0.80, 1.25)
 
 # tail_PD0 = Phi((Phi^{-1}(PD0) + sqrt(rho)*Phi^{-1}(q))/sqrt(1-rho))

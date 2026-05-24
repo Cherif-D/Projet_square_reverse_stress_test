@@ -11,7 +11,7 @@ from __future__ import annotations
 #
 # On construit un pool de scénarios admissibles :
 # - S_eta : voisinage local autour du design point
-# - N_phi : near-optimal set avec d² <= d²* + phi
+# - N_phi : scénarios admissibles avec d² <= d²* + phi
 # ============================================================
 
 import numpy as np
@@ -80,10 +80,12 @@ def generate_candidate_pool(
     On construit un pool de scénarios admissibles :
 
     - S_eta : voisinage local autour du design point
-    - N_phi : near-optimal set avec d² <= d²* + phi
+    - N_phi : scénarios admissibles avec d² <= d²* + phi
 
     Cela correspond à l'esprit de la Section 5 du papier :
     ne pas s'arrêter au point unique, mais explorer un ensemble plausible.
+    Les candidats restent filtrés par la contrainte de capital et par
+    la contrainte géopolitique `g >= 0`.
     """
     y_star  = best["y_star"]
     d2_star = best["d2"]

@@ -65,8 +65,19 @@ def make_grid(design_point, x_driver, y_driver, span=4.0, n_pts=80):
     """
     Construit une grille 2D (x_driver, y_driver) centrée sur le design point.
 
-    Retourne :
-        xx, yy, X_grid, Y_grid, inv_sigma (sur les colonnes de design_point)
+    Le rayon de la grille est élargi à `max(span, 3 * |x_center|, 3 * |y_center|)`
+    pour garantir que le design point reste visible même quand ses coordonnées
+    sont grandes.
+
+    Retourne
+    -------
+    xx : ndarray (n_pts,)
+        Vecteur 1D des abscisses (de -1 à x_center + span).
+    yy : ndarray (n_pts,)
+        Vecteur 1D des ordonnées (de y_center - span à y_center + span).
+    meshgrid : tuple (X_grid, Y_grid)
+        Tuple retourné par `np.meshgrid(xx, yy)`. Les appelants peuvent
+        unpacker via `xx, yy, (X_grid, Y_grid) = make_grid(...)`.
     """
     x_center = float(design_point[x_driver])
     y_center = float(design_point[y_driver])

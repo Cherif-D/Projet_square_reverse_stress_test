@@ -7,6 +7,7 @@ from __future__ import annotations
 # LIEN AVEC LE PAPIER
 # -------------------
 # - eq. (17) : CET1(g,x) = CET1_0 - pertes + delta_non_credit
+#              utilisé ici en convention baseline, avec pertes incrémentales
 # - eq. (21) : RWA(g,x)  = RWA_0 + sum_i alpha_i * (PD_i(g,x) - PD0_i)
 # - eq. (22) : R(s)       = CET1(g,x) / RWA(g,x)
 #
@@ -21,9 +22,12 @@ import numpy as np
 
 def compute_cet1(CET1_0: float, delta_Lq: float, delta_non_credit: float) -> float:
     """
-    CET1(s) corrigé baseline — eq. (17).
+    CET1(s) corrigé baseline — adaptation de l'eq. (17).
 
     CET1(s) = CET1_0 - delta_Lq(s) + delta_non_credit
+
+    Ici `CET1_0` est déjà le capital observé au point de départ. On soustrait
+    donc l'augmentation de perte de queue, pas le niveau total Lq(s).
     """
     return float(CET1_0 - delta_Lq + delta_non_credit)
 

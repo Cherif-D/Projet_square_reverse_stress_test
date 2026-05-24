@@ -19,8 +19,8 @@ from __future__ import annotations
 # Panneau droit — Distribution Student-t (nu = 6 d.d.l.) :
 #   Même métrique de rareté, mais d²(s) a une distribution à
 #   queues plus épaisses sous Student-t.
-#   Pour multivariate Student-t(nu) avec même Sigma :
-#   d²(s)/d ~ (nu-2)/nu * F(d, nu)  [approximation]
+#   Pour une Student-t(nu) rescalée pour avoir la même covariance Sigma :
+#   d²(s) * nu / ((nu-2) * d) ~ F(d, nu)
 #
 # Différence clé :
 #   - Sous Gaussienne, les scénarios distants sont très rares.
@@ -63,13 +63,13 @@ def _student_rarity(d2_grid: np.ndarray, d: int, nu: int) -> np.ndarray:
     Pour une distribution Student-t(nu) multivariée de dimension d,
     rescalée pour avoir la même matrice de covariance Sigma :
 
-        d²(s) * (nu - 2) / (nu * d) ~ F(d, nu)
+        d²(s) * nu / ((nu - 2) * d) ~ F(d, nu)
 
-    Donc : P(d²(S) >= d²) = 1 - F_{d,nu}(d²*(nu-2)/(nu*d))
+    Donc : P(d²(S) >= d²) = 1 - F_{d,nu}(d²*nu/((nu-2)*d))
 
     Cette formule est conforme à l'Annexe A.1 du papier.
     """
-    scale = (nu - 2.0) / (nu * d)
+    scale = nu / ((nu - 2.0) * d)
     f_val = d2_grid * scale
     p_val = 1.0 - f_dist.cdf(f_val, dfn=d, dfd=nu)
     p_val = np.clip(p_val, 1e-15, 1.0)
@@ -144,7 +144,7 @@ def plot_fig5_plausibility(n_pts: int = 100, span: float = 4.5,
         f"Distribution Gaussienne\n"
         f"$d^2_\\Sigma(S) \\sim \\chi^2_{{{d}}}$",
         f"Distribution Student-$t$  ($\\nu={nu}$)\n"
-        f"$d^2_\\Sigma(S)\\cdot(\\nu-2)/(\\nu d) \\sim F({d},{nu})$",
+        f"$d^2_\\Sigma(S)\\cdot\\nu/((\\nu-2)d) \\sim F({d},{nu})$",
     ]
     Z_maps = [Z_gauss, Z_student]
     panel_labels = ["(a)", "(b)"]

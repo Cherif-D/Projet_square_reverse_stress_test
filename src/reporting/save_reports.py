@@ -75,7 +75,7 @@ def save_summary(
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     with open(REPORTS / "summary.md", "w", encoding="utf-8") as f:
-        f.write("# Reverse Stress Test — script principal final\n\n")
+        f.write("# Reverse Stress Test — synthèse du run\n\n")
         f.write("## Baseline\n")
         f.write(f"- Ratio baseline modèle : {baseline_out['R']:.6f}\n")
         f.write(f"- Ratio initial input R0 : {float(capital['R0']):.6f}\n")

@@ -10,13 +10,16 @@ from __future__ import annotations
 #   selection procedure in the (g, x) plane."
 #
 # Ce graphique illustre la réduction en 3 étapes du pool infini
-# vers une liste finie de scénarios gouvernance-ready :
+# vers une liste finie de scénarios de gouvernance :
 #
-# - Courbe rouge : frontière de rupture R(g, x) = R̄
-# - Zone hachurée : ensemble admissible E (S_rho ou N_epsilon)
+# - Courbe rouge : frontière de rupture R(g, x) = R_omega
+# - Zone hachurée : ensemble admissible E (S_eta ou N_phi)
 # - Points gris : pool de candidats C_N (multi-start + exploration locale)
-# - Marqueurs verts : ancres géopolitiques {(g_j, x*(g_j))}
-#   sur une grille d'intensités géopolitiques (mild/moderate/severe)
+# - Marqueurs verts : ancres géopolitiques illustratives à g_j fixé,
+#   les autres coordonnées étant maintenues à celles du design point s*
+#   (pas de sous-optimisation conditionnelle x*(g_j)). Le balayage couvre
+#   une grille d'intensités géopolitiques (mild/moderate/severe) ;
+#   on ne garde que les points qui restent dans la zone de rupture.
 # - Marqueurs noirs : liste réduite C_P via règle farthest-point
 #   (P = SHORTLIST_SIZE scénarios non redondants)
 #
@@ -58,7 +61,9 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
 
     Affiche :
     - Frontière de rupture (rouge épaisse)
-    - Ensemble admissible N_epsilon (zone hachurée jaune)
+    - Ensemble admissible N_phi = S_red ∩ {d² <= d²* + phi, g >= 0}
+      (zone hachurée jaune ; la contrainte g >= 0 est la relaxation SLSQP
+      de la contrainte g > 0 du papier)
     - Pool de candidats (points gris semi-transparents)
     - Ancres géopolitiques (pentagones verts)
     - Shortlist farthest-point (losanges noirs avec étiquettes)
@@ -101,9 +106,12 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
     y_rng     = Y_grid.max() - Y_grid.min()
 
     # --------------------------------------------------------
-    # Ancres géopolitiques sur une grille d'intensités
-    # On balaye g de 0.02 à gx * 2, autres coords = design point
+    # Ancres géopolitiques illustratives (g_j fixé, autres coords = s*)
     # --------------------------------------------------------
+    # On balaye g de 0.02 à gx * 2.5 et on garde le scénario (g_j, x*_design)
+    # tant qu'il reste dans la zone de rupture R(s) <= R_omega + tolérance.
+    # Ce n'est pas une résolution x*(g_j) par sous-optimisation conditionnelle ;
+    # c'est un repère visuel d'intensités géopolitiques à autres coords figées.
     g_levels   = np.linspace(0.02, gx * 2.5, 8)
     anchor_pts = []
     for g_val in g_levels:
@@ -124,11 +132,17 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
                 levels=np.linspace(Z_ratio.min(), threshold, 20),
                 cmap="Reds_r", alpha=0.20)
 
-    # 2. N_epsilon = S_red ∩ {d² <= d²* + 1} (hachuré jaune)
-    N_eps_mask = ((Z_ratio <= threshold) & (Z_dist <= d2_star + PHI_NEAR)).astype(float)
-    ax.contourf(X_grid, Y_grid, N_eps_mask,
+    # 2. N_phi = S_red ∩ {d² <= d²* + PHI_NEAR, g >= 0} (hachuré jaune)
+    # Filtre g >= 0 ajouté pour rester cohérent avec la définition utilisée
+    # par l'optimiseur (relaxation SLSQP de la contrainte g > 0 du papier).
+    N_phi_mask = (
+        (Z_ratio <= threshold)
+        & (Z_dist <= d2_star + PHI_NEAR)
+        & (X_grid >= 0)
+    ).astype(float)
+    ax.contourf(X_grid, Y_grid, N_phi_mask,
                 levels=[0.5, 1.5], colors=["#FFF176"], alpha=0.70, hatches=["///"])
-    ax.contour(X_grid, Y_grid, N_eps_mask,
+    ax.contour(X_grid, Y_grid, N_phi_mask,
                levels=[0.5], colors=["#F9A825"], linewidths=1.0, linestyles=":")
 
     # 3. Ellipses de Mahalanobis (repère)
@@ -140,7 +154,7 @@ def plot_fig4_scenario_selection(n_pts: int = 70, span: float = 3.5) -> None:
     # 4. Frontière de rupture (rouge épaisse)
     cs = ax.contour(X_grid, Y_grid, Z_ratio,
                     levels=[threshold], colors=["#C62828"], linewidths=3.0)
-    ax.clabel(cs, fmt=r"$R(s)=\bar{R}$", inline=True, fontsize=12, colors="#C62828")
+    ax.clabel(cs, fmt=r"$R(s)=R_\omega$", inline=True, fontsize=12, colors="#C62828")
 
     # 5. Pool de candidats (points gris semi-transparents)
     if x_driver in pool.columns and y_driver in pool.columns:

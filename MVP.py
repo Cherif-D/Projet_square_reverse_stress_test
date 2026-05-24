@@ -34,19 +34,21 @@ from __future__ import annotations
 #     -> CET1(g,x), RWA(g,x)
 #     -> R(s)
 #     -> design point s_omega
-#     -> ensembles plausibles + shortlist gouvernance-ready
+#     -> ensembles plausibles + shortlist de gouvernance
 #
 # LIEN AVEC LE PAPIER (Hurlin, Lajaunie, Pull, 7 janvier 2026)
 # ------------------------------------------------------------
 # - eq. (5)  : scénario s = (g, x)^T
 # - eq. (7)  : logit(PD_i(g,x)) = logit(PD0_i) + beta_k(i)^T x + delta_k(i) g
-# - eq. (10) : LGD_i(g,x) = LGD0_i + gamma_k(i)^T x + eta_k(i) g
+# - eq. (10) : LGD_i(g,x) via adaptation lisse en espace latent
 # - eq. (16) : L_q(g,x) ≈ sum_i EAD_i * LGD_i(g,x) * tail_PD_i(g,x)
-# - eq. (17) : CET1(g,x) = CET1_0 - pertes + delta_non_credit
+# - eq. (17) : CET1(g,x) adapté en baseline avec delta_Lq(s)
 # - eq. (21) : RWA(g,x) = RWA_0 + sum_i alpha_i * (PD_i(g,x) - PD0_i)
 # - eq. (22) : R(s) = CET1(g,x) / RWA(g,x)
-# - eq. (24) : design point = scénario cassant le plus plausible
-# - eq. (38) : near-optimal set N_phi
+# - eq. (24) : design point = scénario le plus plausible conduisant à
+#              R(s) <= R_omega, sous la contrainte g >= 0 (relaxation SLSQP
+#              de la contrainte g > 0 du papier)
+# - eq. (38) : near-optimal set N_phi avec contrainte de rupture et g >= 0
 # - eq. (49) : réduction maximin / farthest-point
 #
 # CORRECTION MAJEURE DE BASELINE
@@ -99,10 +101,10 @@ from sklearn.covariance import LedoitWolf
 # 0. CHEMINS ET CONFIGURATION
 # ============================================================
 
-# On détecte automatiquement la racine du projet.
+# On détecte automatiquement la racine du dépôt.
 # Cas standard :
 #   fichier placé dans Simulations/
-#   exécution depuis la racine du projet
+#   exécution depuis la racine du dépôt
 SCRIPT_PATH = Path(__file__).resolve()
 
 if SCRIPT_PATH.parent.name.lower() == "simulations":
@@ -215,7 +217,7 @@ def smooth_unit_interval(raw_value: float, center: float = 0.5, scale: float = 0
 
     Pourquoi ?
     Parce que pour la LGD, on veut éviter un simple clip brutal
-    qui casse les dérivées et peut gêner l'optimisation.
+    qui rompt les dérivées et peut gêner l'optimisation.
 
     La transformation renvoie une valeur dans (0.02, 0.98),
     ce qui évite les problèmes numériques sur les bords.
@@ -319,7 +321,7 @@ def build_scenario_reference():
     LIEN AVEC LE PAPIER
     -------------------
     - eq. (5) : s = (g, x)^T
-    - Section 6.2, étape 1 :
+    - Section 6.1, étape 1 :
       construire les drivers géopolitiques / macro-financiers
       puis la covariance de référence Sigma.
     """
@@ -475,7 +477,9 @@ def build_stressed_exposures_fn(feature_cols, exposures, sector_params):
     LIEN AVEC LE PAPIER
     -------------------
     - eq. (7) / (8) : PD stressée en logit
-    - eq. (10)      : LGD stressée en affine
+    - eq. (10)      : LGD stressée par adaptation lisse en espace latent
+                      (smooth_unit_interval, et non la forme affine brute
+                      du papier, voir le commentaire ci-dessous)
     - Annexe A.2    : version sectorielle (b_k, d_k, c_k, e_k)
 
     Ici :
@@ -527,8 +531,8 @@ def build_stressed_exposures_fn(feature_cols, exposures, sector_params):
             # ------------------------------------------------
             # LGD stressée
             # ------------------------------------------------
-            # eq. (10) :
-            #   LGD_i(g,x) = LGD0_i + gamma_k(i)^T x + eta_k(i) g
+            # Adaptation bornée de l'eq. (10) :
+            #   affine en espace latent, puis projection dans (0,1).
             #
             # Pour préserver exactement LGD_i(0)=LGD0_i, on travaille
             # en espace latent puis on re-projette dans (0,1).
@@ -598,9 +602,10 @@ def build_loss_rwa_ratio_fn(exposures, capital, stressed_exposures_fn):
     # --------------------------------------------------------
     # Baseline s = 0
     # --------------------------------------------------------
-    s_zero = np.zeros(1)  # placeholder overwritten below in caller? no, we rebuild with len via closure outside? we need len(feature cols) unavailable
-    # On ne peut pas utiliser s_zero ici sans connaître la dimension du scénario.
-    # Donc on calcule Lq_baseline dans une fonction dédiée à partir des inputs baseline.
+    # Lq_baseline est calculé directement depuis les colonnes baseline du
+    # portefeuille (EAD, PD0, LGD0, rho), sans avoir besoin de connaître la
+    # dimension du scénario à cet endroit. La dimension du scénario n'est
+    # utilisée que dans loss_rwa_ratio plus bas, via la closure.
 
     baseline_tail_pd = tail_default_prob(
         exposures["PD0"].to_numpy(dtype=float),
@@ -634,7 +639,7 @@ def build_loss_rwa_ratio_fn(exposures, capital, stressed_exposures_fn):
         Lq_abs = float(stressed["loss_q_i"].sum())
 
         # ----------------------------------------------------
-        # Correction baseline : delta_Lq(s)
+        # Adaptation baseline de l'eq. (17) : delta_Lq(s)
         # ----------------------------------------------------
         delta_Lq = float(Lq_abs - Lq_baseline)
 
@@ -724,6 +729,9 @@ def solve_design_point(feature_cols, Sigma_inv, L, capital, loss_rwa_ratio_fn):
         min_y  1/2 ||y||²
         s.c.   R(Ly) <= R_omega
                g(Ly) >= 0
+
+        La contrainte théorique `g > 0` est relaxée en `g >= 0`
+        pour l'optimiseur SLSQP.
     """
     g_idx = feature_cols.index(G_COL)
     R_omega = float(capital["R_omega"])
@@ -803,7 +811,7 @@ def generate_candidate_pool(best, feature_cols, L, Sigma_inv, capital, loss_rwa_
     On construit un pool de scénarios admissibles :
 
     - S_eta : voisinage local autour du design point
-    - N_phi : near-optimal set avec d² <= d²* + phi
+    - N_phi : scénarios admissibles avec d² <= d²* + phi
 
     Cela correspond à l'esprit de la Section 5 du papier :
     ne pas s'arrêter au point unique, mais explorer un ensemble plausible.
@@ -1019,7 +1027,7 @@ def main():
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     with open(REPORTS / "summary.md", "w", encoding="utf-8") as f:
-        f.write("# Reverse Stress Test — script principal final\n\n")
+        f.write("# Reverse Stress Test — synthèse du run\n\n")
         f.write("## Baseline\n")
         f.write(f"- Ratio baseline modèle : {baseline_out['R']:.6f}\n")
         f.write(f"- Ratio initial input R0 : {float(capital['R0']):.6f}\n")
@@ -1048,7 +1056,7 @@ def main():
         for k, v in design_point.abs().sort_values(ascending=False).head(8).items():
             f.write(f"- {k}: {float(v):.4f}\n")
 
-    print("OK - script principal final terminé.")
+    print("OK - pipeline terminé.")
     print("Sorties disponibles dans :", OUTPUTS)
     print(f"Baseline check : R(0) = {baseline_out['R']:.6f} vs R0 input = {float(capital['R0']):.6f}")
 

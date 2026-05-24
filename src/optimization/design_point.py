@@ -6,7 +6,7 @@ from __future__ import annotations
 #
 # LIEN AVEC LE PAPIER
 # -------------------
-# - eq. (24) : design point = scénario cassant le plus plausible
+# - eq. (24) : design point = scénario le plus plausible conduisant à R(s) <= R_omega
 #
 # Sous hypothèse gaussienne :
 #     maximiser la plausibilité
@@ -22,6 +22,7 @@ from __future__ import annotations
 #     min_y  1/2 ||y||²
 #     s.c.   R(Ly) <= R_omega
 #            g(Ly) >= 0
+#            (relaxation numérique de la contrainte théorique g > 0)
 # ============================================================
 
 import numpy as np
@@ -78,6 +79,9 @@ def solve_design_point(feature_cols, Sigma_inv, L, engine: ReverseStressEngine):
         min_y  1/2 ||y||²
         s.c.   R(Ly) <= R_omega
                g(Ly) >= 0
+
+        La contrainte `g > 0` du papier est écrite `g >= 0` pour SLSQP.
+        Le design point courant est strictement positif en pratique.
     """
     g_idx   = feature_cols.index(G_COL)
     R_omega = float(engine.R_omega)

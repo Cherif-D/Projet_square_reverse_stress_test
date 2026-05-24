@@ -17,22 +17,24 @@ from __future__ import annotations
 #     -> CET1(g,x), RWA(g,x)
 #     -> R(s)
 #     -> design point s_omega
-#     -> ensembles plausibles + shortlist gouvernance-ready
+#     -> ensembles plausibles + shortlist de gouvernance
 #
 # LIEN AVEC LE PAPIER (Hurlin, Lajaunie, Pull, 7 janvier 2026)
 # ------------------------------------------------------------
 # - eq. (5)  : scénario s = (g, x)^T
 # - eq. (7)  : logit(PD_i(g,x)) = logit(PD0_i) + beta_k(i)^T x + delta_k(i) g
-# - eq. (10) : LGD_i(g,x) via transmission affine en espace latent
+# - eq. (10) : LGD_i(g,x) via adaptation lisse en espace latent
 #              (smooth projection sigmoïde pour garantir LGD ∈ (0,1) et
 #               LGD_i(0) = LGD0_i exactement ; approche l'affine du papier
 #               pour les petits chocs)
 # - eq. (16) : L_q(g,x) ≈ sum_i EAD_i * LGD_i(g,x) * tail_PD_i(g,x)
-# - eq. (17) : CET1(g,x) = CET1_0 - pertes + delta_non_credit
+# - eq. (17) : CET1(g,x) adapté en baseline avec delta_Lq(s)
 # - eq. (21) : RWA(g,x) = RWA_0 + sum_i alpha_i * (PD_i(g,x) - PD0_i)
 # - eq. (22) : R(s) = CET1(g,x) / RWA(g,x)
-# - eq. (24) : design point = scénario cassant le plus plausible
-# - eq. (38) : near-optimal set N_phi
+# - eq. (24) : design point = scénario le plus plausible conduisant à
+#              R(s) <= R_omega, sous la contrainte g >= 0 (relaxation SLSQP
+#              de la contrainte g > 0 du papier)
+# - eq. (38) : near-optimal set N_phi avec contrainte de rupture et g >= 0
 # - eq. (49) : réduction maximin / farthest-point
 # ============================================================
 

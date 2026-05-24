@@ -25,18 +25,35 @@ def build_sector_diagnostics(
     stressed_exposures_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    On agrège les résultats par secteur.
+    Agrège les résultats exposition-level en une vue sectorielle.
 
-    Intuition :
-    - le script principal optimise au niveau exposition-level ;
-    - mais pour le reporting, on veut aussi une lecture sectorielle.
+    Le script principal optimise au niveau exposition. Pour le reporting,
+    on a aussi besoin d'une lecture sectorielle (EAD, PD, LGD, tail PD,
+    perte de queue) pour alimenter la Table 2 de la note et les figures
+    de l'impact sectoriel.
 
-    On calcule :
-    - EAD sectorielle
-    - PD moyenne pondérée EAD
-    - LGD moyenne pondérée EAD
-    - Tail PD moyenne pondérée
-    - perte de queue sectorielle
+    Pour chaque secteur, le DataFrame retourné contient les colonnes
+    suivantes (les moyennes sont pondérées par EAD) :
+
+      - `sector` : nom du secteur.
+      - `Exposure_count` : nombre d'expositions du secteur.
+      - `EAD_sector` : somme des EAD.
+      - `PD_sector_baseline`, `PD_sector_stress`,
+        `Delta_PD_sector_bp` : PD avant / après stress et écart en bps.
+      - `LGD_sector_baseline`, `LGD_sector_stress`,
+        `Delta_LGD_sector_pp` : LGD avant / après stress et écart en pp.
+      - `TailPD_sector_baseline`, `TailPD_sector_stress`,
+        `TailPD_sector` (alias de stress), `Delta_TailPD_sector_bp` :
+        tail PD ASRF avant / après stress et écart en bps.
+      - `LossQ_sector_baseline`, `LossQ_sector` (= stress),
+        `DeltaLossQ_sector` : perte de queue baseline, stressée, et
+        contribution sectorielle à la variation totale.
+      - `DeltaLossQ_share_pct` : part de chaque secteur dans le
+        `DeltaLq` global (en %).
+
+    Le DataFrame est trié par `LossQ_sector` décroissant. L'invariant
+    `sum(DeltaLossQ_sector) == sum(delta_loss_q_i)` est testé dans
+    `tests/test_sector_aggregation.py`.
     """
     baseline = baseline_exposures_df[[
         "id", "sector", "EAD", "PD_stress", "LGD_stress", "tail_PD", "loss_q_i",

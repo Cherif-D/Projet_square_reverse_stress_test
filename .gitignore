@@ -153,6 +153,16 @@ Documents/Capture d'écran*.png
 Documents/DSR_note_exemple.pdf
 Documents/Projets STORM - Master ESA.pdf
 Documents/preambule.txt
+Documents/DIALLO (4).pdf
+Documents/reversestresstest.pdf
+Documents/Note - Reverse_Stress_Test_*.pdf
+Documents/Repartition_taches_RST_*.pdf
+Documents/Restitution_Reverse_Stress_Test_*.pdf
+# LaTeX aux files for the report
+Documents/Rapport_Personne_1_Phase_1_Phase_2.aux
+Documents/Rapport_Personne_1_Phase_1_Phase_2.log
+Documents/Rapport_Personne_1_Phase_1_Phase_2.out
+Documents/Rapport_Personne_1_Phase_1_Phase_2.toc
 
 # Rendered note PDFs and upload bundles
 Reverse_stress_test_gpt_version_courte.pdf

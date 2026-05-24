@@ -7,7 +7,10 @@ from __future__ import annotations
 # LIEN AVEC LE PAPIER
 # -------------------
 # - eq. (7) / (8) : PD stressée en logit
-# - eq. (10)      : LGD stressée en affine
+# - eq. (10)      : LGD stressée par adaptation lisse en espace latent
+#                   (smooth_unit_interval, et non la forme affine brute
+#                   du papier, voir le commentaire dans
+#                   build_stressed_exposures_fn ci-dessous)
 # - Annexe A.2    : version sectorielle (b_k, d_k, c_k, e_k)
 #
 # Ici :
@@ -36,7 +39,7 @@ def smooth_unit_interval(raw_value, center: float = 0.5, scale: float = 0.15):
 
     Pourquoi ?
     Parce que pour la LGD, on veut éviter un simple clip brutal
-    qui casse les dérivées et peut gêner l'optimisation.
+    qui rompt les dérivées et peut gêner l'optimisation.
 
     La transformation renvoie une valeur dans (0.02, 0.98),
     ce qui évite les problèmes numériques sur les bords.
@@ -129,8 +132,9 @@ def build_stressed_exposures_fn(feature_cols, exposures, sector_params):
             # ------------------------------------------------
             # LGD stressée
             # ------------------------------------------------
-            # eq. (10) :
-            #   LGD_i(g,x) = LGD0_i + gamma_k(i)^T x + eta_k(i) g
+            # Adaptation bornée de l'eq. (10) :
+            #   le papier écrit une LGD affine, puis tronquée si besoin.
+            #   Ici l'affine est appliquée en espace latent, puis re-projetée.
             #
             # Pour préserver exactement LGD_i(0)=LGD0_i, on travaille
             # en espace latent puis on re-projette dans (0,1).

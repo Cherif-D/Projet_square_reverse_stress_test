@@ -50,5 +50,5 @@ def save_candidate_pool(pool: pd.DataFrame) -> None:
 
 
 def save_shortlist(shortlist: pd.DataFrame) -> None:
-    """Sauvegarde la shortlist de scénarios (gouvernance-ready)."""
+    """Sauvegarde la shortlist de scénarios de gouvernance."""
     shortlist.to_csv(TABLES / "scenario_shortlist.csv", index=False)

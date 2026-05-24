@@ -25,8 +25,8 @@ from __future__ import annotations
 #
 # Étape 4 : Résolution numérique du RST
 #           - Optimisation contrainte -> design point s*
-#           - Construction de S_rho et N_epsilon
-#           - Réduction maximin -> shortlist gouvernance-ready
+#           - Construction de S_eta et N_phi
+#           - Réduction maximin -> shortlist de gouvernance
 # ============================================================
 
 import matplotlib.patches as mpatches
@@ -137,14 +137,14 @@ def plot_fig3_roadmap() -> None:
             "• Sensibilités PD (eq. 7) :\n"
             "   logit(PD_i) = logit(PD⁰_i)\n"
             "              + β_kᵀ x + δ_k g\n"
-            "• Sensibilités LGD (eq. 10) :\n"
-            "   LGD_i = LGD⁰_i + γ_kᵀ x + η_k g\n"
+            "• Sensibilités LGD : adaptation lisse\n"
+            "   et bornée de l'eq. 10\n"
             "• Calibration par secteur k",
         ),
         (
             "Étape 3\nCadre capital",
             "• Perte queue (eq. 16) :\n"
-            "   L_q = Σ EAD_i · LGD_i · Φ_tail\n"
+            "   L_q = Σ EAD_i · LGD_i · Q_i\n"
             "• RWA (eq. 21) :\n"
             "   RWA = RWA₀ + Σ α_i · ΔPD_i\n"
             "• Ratio (eq. 22) :\n"
@@ -152,12 +152,12 @@ def plot_fig3_roadmap() -> None:
         ),
         (
             "Étape 4\nRésolution\nnumérique",
-            "• Optimisation SLSQP (eq. 24) :\n"
-            "   min ½‖y‖²  s.c.  R(Ly)≤R̄, g≥0\n"
+            "• Optimisation gaussienne (eq. 31) :\n"
+            "   min ½‖y‖²  s.c.  R(Ly)≤R_ω, g≥0\n"
             "• Multi-start → design point s*\n"
-            "• Pool S_ρ ∪ N_ε (538 scénarios)\n"
+            "• Pool S_η ∪ N_φ\n"
             "• Shortlist maximin (eq. 49)\n"
-            "   → 8 scénarios gouvernance-ready",
+            "   → shortlist de gouvernance",
         ),
     ]
 

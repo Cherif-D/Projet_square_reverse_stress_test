@@ -7,12 +7,11 @@ from __future__ import annotations
 # LIEN AVEC LE PAPIER (Hurlin, Lajaunie, Pull, 7 janvier 2026)
 # ------------------------------------------------------------
 # - eq. (5) : s = (g, x)^T
-# - Section 6.2, étape 1 :
+# - Section 6.1, étape 1 :
 #   construire les drivers géopolitiques / macro-financiers
 #   puis la covariance de référence Sigma.
 # ============================================================
 
-import numpy as np
 import pandas as pd
 
 from src.config import TRANSFORMS
@@ -23,14 +22,31 @@ from src.scenario.transforms import safe_diff, safe_log_diff
 
 def build_scenario_reference():
     """
-    On charge macro.csv, on construit les chocs, puis on estime Sigma.
+    Construit le scénario standardisé et la covariance de référence Sigma.
+
+    Quatre étapes :
+      1. Charger `data/interim/macro.csv` (table harmonisée du tuteur).
+      2. Appliquer les transformations de `TRANSFORMS` (logdiff ou diff
+         selon la variable) pour produire les chocs `shock_*`.
+      3. Standardiser (centrer / réduire) puis recentrer sur le dernier
+         trimestre observé pour que `s = 0` corresponde à la baseline.
+      4. Estimer Sigma sur les observations standardisées (Ledoit-Wolf
+         si activé dans `config.USE_LEDOIT_WOLF`) et calculer son inverse
+         ainsi que sa factorisation de Cholesky `Sigma = L L^T`.
 
     LIEN AVEC LE PAPIER
     -------------------
     - eq. (5) : s = (g, x)^T
-    - Section 6.2, étape 1 :
+    - Section 6.1, étape 1 :
       construire les drivers géopolitiques / macro-financiers
       puis la covariance de référence Sigma.
+
+    Retourne
+    --------
+    tuple
+        `z`, `feature_cols`, `Sigma`, `Sigma_inv`, `L`.
+        La fonction écrit aussi `Sigma.csv`, `sigma_report.json` et
+        `scenario_standardized.csv` dans `outputs/tables/`.
     """
 
     macro_path = INTERIM / "macro.csv"

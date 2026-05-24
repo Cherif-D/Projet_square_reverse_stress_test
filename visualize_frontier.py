@@ -99,6 +99,10 @@ def compute_ratio_for_scenario(s_dict, exposures, capital, sector_params):
     tail_pd = tail_default_prob(PD_stress, rho, capital["q"])
     Lq_stress = np.sum(EAD * LGD_stress * tail_pd)
     
+    # Lq_baseline est lu directement depuis capital.csv (champ Lq0_abs
+    # rempli par Simulations/simulate_capital.py). Le pipeline principal
+    # recalcule cette valeur depuis les colonnes baseline ; ici on s'appuie
+    # sur la valeur figée dans le CSV pour rester compatible legacy.
     Lq_baseline = capital["Lq0_abs"]
     delta_Lq = Lq_stress - Lq_baseline
     CET1 = capital["CET1_0"] - delta_Lq + capital["delta_non_credit"]

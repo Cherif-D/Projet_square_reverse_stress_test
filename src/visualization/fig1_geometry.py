@@ -17,12 +17,11 @@ from __future__ import annotations
 #   centrées en s = 0 (distribution de référence)
 # - Point de design s* : tangence entre la plus petite ellipse
 #   et la frontière, sous contrainte g >= 0
-# - Boule locale B_rho(s*) : dashed ellipse de rayon rho autour de s*
-# - Voisinage local S_rho = S_red ∩ B_rho(s*) : zone hachurée
+# - Boule locale B_eta(s*) : ellipse de rayon eta autour de s*
+# - Voisinage local S_eta = S_red ∩ B_eta(s*) : zone hachurée
 # ============================================================
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 
 from src.config import ETA_LOCAL, G_COL
@@ -57,8 +56,8 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
     - Frontière R(s) = R_omega (courbe rouge)
     - Ellipses de Mahalanobis centrées en 0 (contours bleus)
     - Design point s* (étoile rouge)
-    - Boule locale B_rho(s*) autour de s* (ellipse verte pointillée)
-    - Voisinage local S_rho (zone hachurée verte)
+    - Boule locale B_eta(s*) autour de s* (ellipse verte pointillée)
+    - Voisinage local S_eta (zone hachurée verte)
     """
     engine, design_point, sigma, summary = load_viz_context()
 
@@ -86,7 +85,7 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
     rho_local = ETA_LOCAL
 
     # --------------------------------------------------------
-    # Boule locale en y-space : ||y - y*||² <= rho
+    # Boule locale en y-space : ||y - y*||² <= eta
     # --------------------------------------------------------
     s_star = design_point.values.copy()
     y_star = np.linalg.solve(L, s_star)
@@ -121,7 +120,7 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
     cs = ax.contour(X_grid, Y_grid, Z_ratio,
                     levels=[threshold],
                     colors=["#C62828"], linewidths=3.0)
-    ax.clabel(cs, fmt=r"$R(s)=\bar{R}$", inline=True, fontsize=12, colors="#C62828")
+    ax.clabel(cs, fmt=r"$R(s)=R_\omega$", inline=True, fontsize=12, colors="#C62828")
 
     # 3. Ellipses de Mahalanobis centrées en 0
     levels_ell = sorted(set([round(d2_star, 3), 1.0, 4.0]))
@@ -131,14 +130,14 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
     ax.clabel(cse, fmt={v: f"$d^2={v:.2f}$" for v in levels_ell},
               inline=True, fontsize=11, colors="#1565C0")
 
-    # 4. Voisinage local S_rho = S_red ∩ B_rho(s*) (hachuré vert)
+    # 4. Voisinage local S_eta = S_red ∩ B_eta(s*) (hachuré vert)
     S_rho_mask = ((Z_ratio <= threshold) & (Z_dist_local <= rho_local)).astype(float)
     ax.contourf(X_grid, Y_grid, S_rho_mask,
                 levels=[0.5, 1.5], colors=["#43A047"], alpha=0.45, hatches=["///"])
     ax.contour(X_grid, Y_grid, S_rho_mask,
                levels=[0.5], colors=["#2E7D32"], linewidths=0.8, linestyles=":")
 
-    # 5. Boule locale B_rho(s*) (ellipse verte pointillée)
+    # 5. Boule locale B_eta(s*) (ellipse verte pointillée)
     ax.contour(X_grid, Y_grid, Z_dist_local,
                levels=[rho_local],
                colors=["#2E7D32"], linestyles="--", linewidths=2.2)
@@ -166,12 +165,12 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
             fontweight="bold", ha="center", va="center",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#C62828", alpha=0.7))
 
-    ax.text(0.62, 0.45, r"$\mathcal{S}_\rho$",
+    ax.text(0.62, 0.45, r"$\mathcal{S}_\eta$",
             transform=ax.transAxes, fontsize=16, color="#2E7D32",
             fontweight="bold", ha="center", va="center",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#2E7D32", alpha=0.7))
 
-    ax.text(0.60, 0.30, r"$\mathcal{B}_\rho(s^*)$",
+    ax.text(0.60, 0.30, r"$\mathcal{B}_\eta(s^*)$",
             transform=ax.transAxes, fontsize=13, color="#2E7D32",
             ha="center", va="center",
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="#2E7D32", alpha=0.6))
@@ -190,7 +189,7 @@ def plot_fig1_geometry(n_pts: int = 90, span: float = 3.5) -> None:
     ax.set_ylabel(f"Choc macro  $x$  [{y_driver}]  [z-score]", fontsize=13, labelpad=10)
     ax.set_title(
         "Figure 1 — Géométrie du problème de reverse stress test\n"
-        r"Région de rupture $S_{\rm red}$,  frontière $R(s)=\bar{R}$,  voisinage local $\mathcal{S}_\rho$",
+        r"Région de rupture $S_{\rm red}$,  frontière $R(s)=R_\omega$,  voisinage local $\mathcal{S}_\eta$",
         fontsize=14, fontweight="bold", pad=15
     )
 

@@ -1,26 +1,27 @@
 from __future__ import annotations
 
 # ============================================================
-# FIGURE 2 — ENSEMBLE NEAR-OPTIMAL N_epsilon
+# FIGURE 2 — ENSEMBLE NEAR-OPTIMAL N_phi
 # ============================================================
 #
 # LIEN AVEC LE PAPIER (Hurlin, Lajaunie, Pull, 2026)
 # ---------------------------------------------------
 # Figure 2 (p. 15-16) : "Geometry of the plausible reverse stress
-#   scenario set N_epsilon in the (g, x) plane."
+#   scenario set N_phi in the (g, x) plane."
 #
-# Ce graphique montre la géométrie de l'ensemble epsilon-near-optimal :
+# Ce graphique montre la géométrie de l'ensemble phi-near-optimal :
 #
 # - Zone rouge (S_red) : R(g, x) <= R_omega
 # - Frontière (rouge pleine) : R(g, x) = R_omega
 # - Ellipses de plausibilité centrées en 0
 # - Design point s* (étoile)
-# - Contour externe relaxé : d²(s) = d²(s*) + epsilon
-# - Zone hachurée N_epsilon = S_red ∩ {s : d²(s) <= d²(s*) + epsilon}
+# - Contour externe relaxé : d²(s) = d²(s*) + phi
+# - Zone hachurée N_phi = S_red ∩ {s : d²(s) <= d²(s*) + phi, g >= 0}
+#   (la contrainte g >= 0 est la relaxation SLSQP de g > 0 du papier)
 #
 # Différence clé avec Figure 1 :
-#   Fig 1 utilise la boule B_rho(s*) en y-space (voisinage local).
-#   Fig 2 utilise le contour relaxé en Mahalanobis d²(s) <= d²* + eps
+#   Fig 1 utilise la boule B_eta(s*) en y-space (voisinage local).
+#   Fig 2 utilise le contour relaxé en Mahalanobis d²(s) <= d²* + phi
 #   (near-optimal set), qui peut capturer des régions disconnectées.
 # ============================================================
 
@@ -52,15 +53,16 @@ plt.rcParams.update({
 def plot_fig2_near_optimal(n_pts: int = 90, span: float = 3.5) -> None:
     """
     Reproduit la Figure 2 du papier :
-    Géométrie de l'ensemble plausible N_epsilon en plan (g, x).
+    Géométrie de l'ensemble plausible N_phi en plan (g, x).
 
     Affiche :
     - Zone de rupture S_red (rouge pâle)
     - Frontière R(s) = R_omega (courbe rouge épaisse)
     - Ellipses de Mahalanobis centrées en 0 (contours bleus)
     - Design point s* (étoile rouge)
-    - Contour relaxé d²(s) = d²* + epsilon (ellipse orange pointillée)
-    - Ensemble N_epsilon (zone hachurée orange) = S_red ∩ {d² <= d²* + eps}
+    - Contour relaxé d²(s) = d²* + phi (ellipse orange pointillée)
+    - Ensemble N_phi (zone hachurée orange) = S_red ∩ {d² <= d²* + phi, g >= 0}
+      (la contrainte g >= 0 est la relaxation SLSQP de la contrainte g > 0 du papier)
     """
     engine, design_point, sigma, summary = load_viz_context()
 
@@ -82,7 +84,7 @@ def plot_fig2_near_optimal(n_pts: int = 90, span: float = 3.5) -> None:
 
     threshold = float(engine.R_omega)
     d2_star   = float(summary["design_point_d2"])
-    eps       = PHI_NEAR
+    phi       = PHI_NEAR
 
     gx = float(design_point[x_driver])
     gy = float(design_point[y_driver])
@@ -100,17 +102,24 @@ def plot_fig2_near_optimal(n_pts: int = 90, span: float = 3.5) -> None:
                 levels=np.linspace(Z_ratio.min(), threshold, 30),
                 cmap="Reds_r", alpha=0.35)
 
-    # 2. N_epsilon = S_red ∩ {d² <= d²* + eps} (hachuré orange)
-    N_eps_mask = ((Z_ratio <= threshold) & (Z_dist <= d2_star + eps)).astype(float)
-    ax.contourf(X_grid, Y_grid, N_eps_mask,
+    # 2. N_phi = S_red ∩ {d² <= d²* + phi, g >= 0} (hachuré orange)
+    # On ajoute le filtre g >= 0 (relaxation SLSQP de g > 0 du papier) pour
+    # rester cohérent avec la définition utilisée par l'optimiseur dans
+    # src/optimization/candidate_sets.py.
+    N_phi_mask = (
+        (Z_ratio <= threshold)
+        & (Z_dist <= d2_star + phi)
+        & (X_grid >= 0)
+    ).astype(float)
+    ax.contourf(X_grid, Y_grid, N_phi_mask,
                 levels=[0.5, 1.5], colors=["#FF8F00"], alpha=0.50, hatches=["\\\\\\"])
-    ax.contour(X_grid, Y_grid, N_eps_mask,
+    ax.contour(X_grid, Y_grid, N_phi_mask,
                levels=[0.5], colors=["#E65100"], linewidths=0.8, linestyles=":")
 
     # 3. Frontière R(s) = R_omega (ligne rouge épaisse)
     cs = ax.contour(X_grid, Y_grid, Z_ratio,
                     levels=[threshold], colors=["#C62828"], linewidths=3.0)
-    ax.clabel(cs, fmt=r"$R(s)=\bar{R}$", inline=True, fontsize=12, colors="#C62828")
+    ax.clabel(cs, fmt=r"$R(s)=R_\omega$", inline=True, fontsize=12, colors="#C62828")
 
     # 4. Ellipses de Mahalanobis centrées en 0
     levels_ell = sorted(set([round(d2_star, 3), 1.0, 4.0]))
@@ -120,9 +129,9 @@ def plot_fig2_near_optimal(n_pts: int = 90, span: float = 3.5) -> None:
     ax.clabel(cse, fmt={v: f"$d^2={v:.2f}$" for v in levels_ell},
               inline=True, fontsize=11, colors="#1565C0")
 
-    # 5. Contour relaxé d²(s) = d²* + eps (orange épais pointillé)
+    # 5. Contour relaxé d²(s) = d²* + phi (orange épais pointillé)
     ax.contour(X_grid, Y_grid, Z_dist,
-               levels=[d2_star + eps],
+               levels=[d2_star + phi],
                colors=["#E65100"], linestyles="--", linewidths=2.8)
 
     # 6. Axes de référence
@@ -145,14 +154,14 @@ def plot_fig2_near_optimal(n_pts: int = 90, span: float = 3.5) -> None:
             fontweight="bold", ha="center", va="center",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#C62828", alpha=0.7))
 
-    ax.text(0.63, 0.42, r"$\mathcal{N}_\varepsilon$",
+    ax.text(0.63, 0.42, r"$\mathcal{N}_\phi$",
             transform=ax.transAxes, fontsize=18, color="#E65100",
             fontweight="bold", ha="center", va="center",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#E65100", alpha=0.7))
 
     # Annotation du contour relaxé
     ax.text(0.28, 0.68,
-            rf"$d^2_\Sigma(s)=d^2_\Sigma(s^*)+\varepsilon={d2_star + eps:.2f}$",
+            rf"$d^2_\Sigma(s)=d^2_\Sigma(s^*)+\phi={d2_star + phi:.2f}$",
             transform=ax.transAxes, fontsize=10, color="#E65100",
             ha="center", va="center",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#E65100", alpha=0.75))
@@ -170,8 +179,8 @@ def plot_fig2_near_optimal(n_pts: int = 90, span: float = 3.5) -> None:
     ax.set_xlabel(f"Choc géopolitique  $g$  [{x_driver}]  [z-score]", fontsize=13, labelpad=10)
     ax.set_ylabel(f"Choc macro  $x$  [{y_driver}]  [z-score]", fontsize=13, labelpad=10)
     ax.set_title(
-        r"Figure 2 — Ensemble plausible $\mathcal{N}_\varepsilon$ des scénarios near-optimal" + "\n"
-        r"$\mathcal{N}_\varepsilon = S_{\rm red} \cap \{s : d^2_\Sigma(s) \leq d^2_\Sigma(s^*)+\varepsilon\}$",
+        r"Figure 2 — Ensemble plausible $\mathcal{N}_\phi$ des scénarios near-optimal" + "\n"
+        r"$\mathcal{N}_\phi = S_{\rm red} \cap \{s : d^2_\Sigma(s) \leq d^2_\Sigma(s^*)+\phi,\ g \geq 0\}$",
         fontsize=14, fontweight="bold", pad=15
     )
 
